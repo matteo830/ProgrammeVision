@@ -1,0 +1,242 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["omitApi"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  COACH
+  ADMIN
+}
+
+enum ModuleType {
+  MINDSET
+  BUSINESS
+  TUNNEL
+  OPTIMISATION
+  ONBOARDING
+}
+
+enum QuestionStatus {
+  PENDING
+  IN_PROGRESS
+  ANSWERED
+}
+
+enum NoteVisibility {
+  CLIENT_VISIBLE
+  TEAM_ONLY
+}
+
+enum SessionType {
+  GROUP
+  INDIVIDUAL
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          Role      @default(CLIENT)
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations client
+  clientProfile     ClientProfile?
+  moduleProgresses  ModuleProgress[]
+  dailyActions      DailyAction[]
+  gratitudes        Gratitude[]
+  weeklyVictories   WeeklyVictory[]
+  questions         Question[]
+  questionReplies   QuestionReply[]
+  coachingNotes     CoachingNote[]
+
+  // Relations coach
+  assignedClients   CoachClientAssignment[] @relation("CoachAssignments")
+  coachingSessions  CoachingSession[]       @relation("CoachSessions")
+
+  // Relations partagées
+  clientAssignments CoachClientAssignment[] @relation("ClientAssignments")
+}
+
+model ClientProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Contexte initial
+  currentRevenue    Float?
+  targetRevenue     Float?
+  currentSalary     Float?
+  targetSalary      Float?
+  objective6months  String?
+  programStartDate  DateTime?
+  programEndDate    DateTime?
+
+  // Audit départ
+  auditNotes        String?
+  auditCompletedAt  DateTime?
+
+  // Lien booking GHL individuel
+  ghlBookingUrl     String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model CoachClientAssignment {
+  id        String   @id @default(cuid())
+  coachId   String
+  clientId  String
+  coach     User     @relation("CoachAssignments", fields: [coachId], references: [id])
+  client    User     @relation("ClientAssignments", fields: [clientId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@unique([coachId, clientId])
+}
+
+model Phase {
+  id          String   @id @default(cuid())
+  order       Int      @unique
+  title       String
+  description String?
+  modules     Module[]
+}
+
+model Module {
+  id           String      @id @default(cuid())
+  phaseId      String
+  phase        Phase       @relation(fields: [phaseId], references: [id])
+  order        Int
+  title        String
+  description  String?
+  type         ModuleType
+  videoUrl     String?
+  exerciseUrl  String?
+  progresses   ModuleProgress[]
+
+  @@unique([phaseId, order])
+}
+
+model ModuleProgress {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleId          String
+  module            Module    @relation(fields: [moduleId], references: [id])
+
+  videoWatched      Boolean   @default(false)
+  videoWatchedAt    DateTime?
+
+  exerciseSubmitted Boolean   @default(false)
+  submittedAt       DateTime?
+  submissionNote    String?
+
+  coachValidated    Boolean   @default(false)
+  validatedAt       DateTime?
+  coachComment      String?
+
+  realImplementation Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+
+  @@unique([userId, moduleId])
+}
+
+model DailyAction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  completed Boolean  @default(false)
+  order     Int      @default(1)
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
+model Gratitude {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
+model WeeklyVictory {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content       String
+  weekStartDate DateTime
+  createdAt     DateTime @default(now())
+}
+
+model CoachingSession {
+  id          String      @id @default(cuid())
+  coachId     String
+  coach       User        @relation("CoachSessions", fields: [coachId], references: [id])
+  title       String
+  type        SessionType
+  scheduledAt DateTime
+  duration    Int?
+  meetingUrl  String?
+  notes       CoachingNote[]
+  createdAt   DateTime    @default(now())
+}
+
+model CoachingNote {
+  id         String         @id @default(cuid())
+  sessionId  String?
+  session    CoachingSession? @relation(fields: [sessionId], references: [id])
+  authorId   String
+  author     User           @relation(fields: [authorId], references: [id])
+  clientId   String
+  content    String
+  visibility NoteVisibility @default(CLIENT_VISIBLE)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model Question {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String
+  content   String
+  status    QuestionStatus @default(PENDING)
+  replies   QuestionReply[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model QuestionReply {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  content    String
+  createdAt  DateTime @default(now())
+}
+
+model Inspiration {
+  id        String   @id @default(cuid())
+  quote     String
+  author    String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
