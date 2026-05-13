@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SessionForm } from "@/components/coach/session-form";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,19 +81,36 @@ interface ClientDetailViewProps {
       author: { firstName: string; lastName: string; role: string };
     }>;
   }>;
+  sessions: Array<{
+    id: string;
+    title: string;
+    scheduledAt: Date;
+    meetingUrl: string | null;
+    firefliesUrl: string | null;
+    summary: string | null;
+    decisions: string | null;
+    actions: Array<{ id: string; content: string; completedByClient: boolean }>;
+  }>;
 }
 
-type ActiveTab = "formation" | "notes" | "questions";
+type ActiveTab = "formation" | "notes" | "questions" | "seances";
 
 export function ClientDetailView({
   client,
   progress,
   notes: initialNotes,
   questions: initialQuestions,
+  sessions: initialSessions,
 }: ClientDetailViewProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("formation");
   const [notes, setNotes] = useState(initialNotes);
   const [questions, setQuestions] = useState(initialQuestions);
+  const [sessions, setSessions] = useState(initialSessions);
+  const [sessionFormOpen, setSessionFormOpen] = useState<string | null>(null);
+  const [creatingSession, setCreatingSession] = useState(false);
+  const [newSessionTitle, setNewSessionTitle] = useState("");
+  const [newSessionDate, setNewSessionDate] = useState("");
+  const [showNewSessionForm, setShowNewSessionForm] = useState(false);
   const [expandedPhase, setExpandedPhase] = useState<number | null>(null);
   const [noteContent, setNoteContent] = useState("");
   const [noteVisibility, setNoteVisibility] = useState<"CLIENT_VISIBLE" | "TEAM_ONLY">("CLIENT_VISIBLE");
@@ -158,8 +176,27 @@ export function ClientDetailView({
     setReplyContent((prev) => ({ ...prev, [questionId]: "" }));
   }
 
+  async function createSession() {
+    if (!newSessionTitle.trim() || !newSessionDate) return;
+    setCreatingSession(true);
+    const res = await fetch("/api/coach/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: client.id, title: newSessionTitle, type: "INDIVIDUAL", scheduledAt: newSessionDate }),
+    });
+    setCreatingSession(false);
+    if (res.ok) {
+      const created = await res.json();
+      setSessions(prev => [created, ...prev]);
+      setNewSessionTitle("");
+      setNewSessionDate("");
+      setShowNewSessionForm(false);
+    }
+  }
+
   const tabs: { id: ActiveTab; label: string; icon: typeof MessageCircle }[] = [
     { id: "formation", label: "Formation", icon: CheckCircle2 },
+    { id: "seances", label: "Séances", icon: MessageCircle },
     { id: "notes", label: "Notes", icon: MessageCircle },
     { id: "questions", label: "Questions", icon: FileText },
   ];
@@ -516,6 +553,103 @@ export function ClientDetailView({
           )}
         </div>
       )}
+
+      {/* Tab Séances */}
+      {activeTab === "seances" && (
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <p className="text-sm font-semibold text-gray-700">{sessions.length} séance{sessions.length !== 1 ? "s" : ""}</p>
+            <button
+              onClick={() => setShowNewSessionForm(v => !v)}
+              className="text-xs font-bold px-3 py-1.5 rounded-lg text-white"
+              style={{ background: "linear-gradient(135deg,#FF8A6B,#E8527D)" }}
+            >
+              + Nouvelle séance
+            </button>
+          </div>
+
+          {showNewSessionForm && (
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-gray-800">Planifier une séance</p>
+              <input
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                placeholder="Titre de la séance (ex: Séance 7)"
+                value={newSessionTitle}
+                onChange={e => setNewSessionTitle(e.target.value)}
+              />
+              <input
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                type="datetime-local"
+                value={newSessionDate}
+                onChange={e => setNewSessionDate(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={createSession}
+                  disabled={creatingSession || !newSessionTitle.trim() || !newSessionDate}
+                  className="flex-1 py-2 text-sm font-bold text-white rounded-xl disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg,#FF8A6B,#E8527D)" }}
+                >
+                  {creatingSession ? "Création..." : "Créer"}
+                </button>
+                <button
+                  onClick={() => setShowNewSessionForm(false)}
+                  className="px-4 py-2 text-sm text-gray-600 rounded-xl border border-gray-200"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
+
+          {sessions.map(s => (
+            <div key={s.id} className="bg-white border border-gray-100 rounded-2xl p-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">{s.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {new Date(s.scheduledAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSessionFormOpen(s.id)}
+                  className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                >
+                  {(s.summary || s.decisions || s.firefliesUrl) ? "Modifier" : "Remplir CR"}
+                </button>
+              </div>
+              {s.actions.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {s.actions.map(a => (
+                    <span key={a.id} className={cn("text-xs px-2 py-0.5 rounded-full font-medium", a.completedByClient ? "bg-green-100 text-green-700 line-through" : "bg-amber-50 text-amber-700")}>
+                      {a.content.slice(0, 40)}{a.content.length > 40 ? "…" : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {sessions.length === 0 && !showNewSessionForm && (
+            <p className="text-center text-sm text-gray-400 py-6">Aucune séance planifiée</p>
+          )}
+        </div>
+      )}
+
+      {sessionFormOpen && (() => {
+        const s = sessions.find(x => x.id === sessionFormOpen);
+        if (!s) return null;
+        return (
+          <SessionForm
+            session={{ ...s, client: { firstName: client.firstName, lastName: client.lastName } }}
+            onClose={() => setSessionFormOpen(null)}
+            onUpdated={(updated) => {
+              setSessions(prev => prev.map(x => x.id === s.id ? { ...x, ...updated } : x));
+              setSessionFormOpen(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

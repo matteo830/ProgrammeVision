@@ -23,7 +23,7 @@ export default async function ClientDetailPage({
 
   if (!client) notFound();
 
-  const [progress, notes, questions] = await Promise.all([
+  const [progress, notes, questions, sessions] = await Promise.all([
     getClientProgress(id),
     prisma.coachingNote.findMany({
       where: { clientId: id },
@@ -40,6 +40,11 @@ export default async function ClientDetailPage({
           include: { author: { select: { firstName: true, lastName: true, role: true } } },
         },
       },
+    }),
+    prisma.coachingSession.findMany({
+      where: { clientId: id },
+      orderBy: { scheduledAt: "desc" },
+      include: { actions: { orderBy: { createdAt: "asc" } } },
     }),
   ]);
 
@@ -62,6 +67,7 @@ export default async function ClientDetailPage({
       progress={progress}
       notes={notes}
       questions={questions}
+      sessions={sessions}
     />
   );
 }
