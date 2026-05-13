@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AdminSetupForm } from "@/components/admin/admin-setup-form";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminSetupPage() {
   const adminExists = await prisma.user.findFirst({ where: { role: "ADMIN" } });
   if (adminExists) redirect("/login");
