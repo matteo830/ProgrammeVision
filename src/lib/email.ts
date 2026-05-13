@@ -1,9 +1,9 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = "Vision <noreply@methode-vision.com>";
 
 export async function sendPasswordResetEmail(email: string, token: string) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const url = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
 
   await resend.emails.send({
