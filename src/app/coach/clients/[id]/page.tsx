@@ -11,7 +11,7 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth();
-  if (!session?.user?.id || session.user.role !== "COACH") redirect("/dashboard");
+  if (!session?.user?.id || (session.user.role !== "COACH" && session.user.role !== "ADMIN")) redirect("/dashboard");
 
   const { id } = await params;
 

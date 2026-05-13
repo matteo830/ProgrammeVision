@@ -7,28 +7,50 @@ export default async function CalendrierPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const [profile, coaches] = await Promise.all([
-    prisma.clientProfile.findUnique({
-      where: { userId: session.user.id },
-      select: { ghlBookingUrl: true },
+  const userId = session.user.id;
+  const now = new Date();
+
+  const [upcoming, past, assignmentRow, coaches, calendarUrl] = await Promise.all([
+    prisma.coachingSession.findFirst({
+      where: { clientId: userId, scheduledAt: { gt: now } },
+      orderBy: { scheduledAt: "asc" },
+      include: {
+        coach: { select: { firstName: true, lastName: true } },
+        actions: true,
+        notes: { where: { visibility: "CLIENT_VISIBLE" }, orderBy: { createdAt: "asc" } },
+      },
+    }),
+    prisma.coachingSession.findMany({
+      where: { clientId: userId, scheduledAt: { lte: now } },
+      orderBy: { scheduledAt: "desc" },
+      include: {
+        coach: { select: { firstName: true, lastName: true } },
+        actions: true,
+        notes: { where: { visibility: "CLIENT_VISIBLE" }, orderBy: { createdAt: "asc" } },
+      },
+    }),
+    prisma.coachClientAssignment.findFirst({
+      where: { clientId: userId },
+      include: { coach: { select: { id: true, firstName: true, lastName: true, ghlCalendarSlug: true } } },
     }),
     prisma.user.findMany({
-      where: {
-        role: { in: ["COACH", "ADMIN"] },
-        isActive: true,
-        NOT: { ghlCalendarSlug: null },
-      },
+      where: { role: { in: ["COACH", "ADMIN"] }, isActive: true, NOT: { ghlCalendarSlug: null } },
       select: { id: true, firstName: true, lastName: true, ghlCalendarSlug: true },
       orderBy: { firstName: "asc" },
     }),
+    Promise.resolve(process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_URL ?? ""),
   ]);
 
-  const VISION_CALENDAR_URL = process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_URL ?? "";
+  const assignedCoach = assignmentRow?.coach ?? null;
 
   return (
     <CalendrierClient
       coaches={coaches as { id: string; firstName: string; lastName: string; ghlCalendarSlug: string }[]}
-      calendarUrl={VISION_CALENDAR_URL}
+      calendarUrl={calendarUrl}
+      upcoming={upcoming as Parameters<typeof CalendrierClient>[0]["upcoming"]}
+      past={past as Parameters<typeof CalendrierClient>[0]["past"]}
+      assignedCoach={assignedCoach as Parameters<typeof CalendrierClient>[0]["assignedCoach"]}
+      currentUserId={userId}
     />
   );
 }

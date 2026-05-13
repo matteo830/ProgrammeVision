@@ -89,6 +89,7 @@ model User {
 
   // Relations partagées
   clientAssignments CoachClientAssignment[] @relation("ClientAssignments")
+  clientSessions    CoachingSession[]       @relation("ClientSessions")
 }
 
 model ClientProfile {
@@ -204,16 +205,34 @@ model WeeklyVictory {
 }
 
 model CoachingSession {
-  id          String      @id @default(cuid())
-  coachId     String
-  coach       User        @relation("CoachSessions", fields: [coachId], references: [id])
-  title       String
-  type        SessionType
-  scheduledAt DateTime
-  duration    Int?
-  meetingUrl  String?
-  notes       CoachingNote[]
-  createdAt   DateTime    @default(now())
+  id           String      @id @default(cuid())
+  coachId      String
+  coach        User        @relation("CoachSessions", fields: [coachId], references: [id])
+  clientId     String?
+  client       User?       @relation("ClientSessions", fields: [clientId], references: [id])
+  title        String
+  type         SessionType
+  scheduledAt  DateTime
+  duration     Int?
+  meetingUrl   String?
+  firefliesUrl String?
+  summary      String?     @db.Text
+  decisions    String?     @db.Text
+  notes        CoachingNote[]
+  actions      SessionAction[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model SessionAction {
+  id               String          @id @default(cuid())
+  sessionId        String
+  session          CoachingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  content          String
+  completedByClient Boolean        @default(false)
+  completedAt      DateTime?
+  addedToDashboard Boolean         @default(false)
+  createdAt        DateTime        @default(now())
 }
 
 model CoachingNote {
