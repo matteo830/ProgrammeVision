@@ -1,6 +1,6 @@
 # Synthèse du projet Vision — Plateforme de coaching
 
-> Document de reprise de session. Dernière mise à jour : 04/05/2026.
+> Document de reprise de session. Dernière mise à jour : 13/05/2026.
 
 ---
 
@@ -35,13 +35,23 @@ Application web de suivi de programme d'accompagnement entrepreneurial sur 6 moi
 - `/opt/vision/Dockerfile` — build non-standalone (inclut `node_modules` complet)
 - `/opt/n8n/Caddyfile` — reverse proxy (n8n + vision)
 
-### Variables d'environnement (`.env` sur le serveur)
+### Variables d'environnement actuelles (`.env` sur le serveur)
 
 ```
 DATABASE_URL="postgresql://n8n:****@postgres:5432/vision"
 NEXTAUTH_SECRET="****"
 NEXTAUTH_URL="https://programme.methode-vision.com"
 GHL_WEBHOOK_SECRET="vision-ghl-secret-2024"
+```
+
+### Variables d'env à ajouter au prochain sprint
+
+```
+RESEND_API_KEY=          # À créer sur resend.com (gratuit)
+RESEND_FROM="noreply@methode-vision.com"
+GOOGLE_CLIENT_ID=        # Google Cloud Console
+GOOGLE_CLIENT_SECRET=    # Google Cloud Console
+GHL_API_TOKEN=           # Private Integration GHL (régénérer après partage en chat)
 ```
 
 ### Commandes de déploiement
@@ -66,6 +76,7 @@ docker exec vision-app ./node_modules/.bin/prisma db seed
 /login                    — Page de connexion (tous rôles)
 /(app)/dashboard          — Dashboard client
 /(app)/formation          — Parcours / modules
+/(app)/audit              — Audit d'onboarding (À IMPLÉMENTER)
 /(app)/coaching           — Notes de coaching (client)
 /(app)/questions          — Q&A / tickets
 /(app)/calendrier         — Calendriers (Google collectif + GHL individuel)
@@ -75,11 +86,12 @@ docker exec vision-app ./node_modules/.bin/prisma db seed
 /coach/modules            — Gestion vidéos/exercices (coach)
 /admin                    — Dashboard admin (À IMPLÉMENTER)
 /admin/setup              — Création premier admin (À IMPLÉMENTER)
+/reset-password           — Reset mot de passe via token email (À IMPLÉMENTER)
 ```
 
 ### Modèle de données (Prisma — `prisma/schema.prisma`)
 
-**Modèles principaux** :
+**Modèles existants** :
 - `User` — CLIENT / COACH / ADMIN — avec `firstName`, `lastName`, `email`, `password`, `role`, `avatarUrl`
 - `ClientProfile` — `programStartDate`, `programEndDate`, `objective6months`, `currentRevenue`, `targetRevenue`, `ghlBookingUrl`
 - `Phase` (4 phases : 0 à 3) → `Module` (23 modules au total)
@@ -88,11 +100,13 @@ docker exec vision-app ./node_modules/.bin/prisma db seed
 - `Question` + `QuestionReply` — système de tickets
 - `DailyAction`, `Gratitude`, `WeeklyVictory` — journal quotidien client
 - `Inspiration` — citations affichées sur le dashboard
-- `CoachClientAssignment` — assignation coach↔client (prévu, pas utilisé en V1)
+- `CoachClientAssignment` — assignation coach↔client (prévu, V2)
 
 **À AJOUTER au prochain sprint** :
 - Champ `isActive Boolean @default(true)` sur `User`
 - Modèle `PasswordResetToken` — `id`, `token`, `userId`, `expiresAt`, `usedAt`
+- Modèle `Account` — requis par NextAuth pour Google OAuth
+- Modèle `AuditResponse` — voir section 5.4 ci-dessous
 
 ### Fichiers importants
 
@@ -136,7 +150,7 @@ docker exec vision-app ./node_modules/.bin/prisma db seed
 ### 5.1 Système Admin
 
 **Accès** :
-- URL : `/admin` (protégée par login)
+- URL : `/admin` (protégée par login admin)
 - Page setup : `/admin/setup` — accessible une seule fois, tant qu'aucun admin n'existe en base
 
 **Fonctionnalités admin** :
@@ -155,9 +169,14 @@ docker exec vision-app ./node_modules/.bin/prisma db seed
 
 ### 5.2 Reset de mot de passe par email
 
-**Provider** : OVH SMTP via `nodemailer`  
-**Credentials nécessaires au démarrage** : host SMTP OVH, port, user, password  
-**Sender** : `noreply@methode-vision.com`
+**Provider** : **Resend** (resend.com — gratuit jusqu'à 3000 emails/mois)  
+**Setup requis** :
+1. Créer compte sur resend.com
+2. Ajouter 2 enregistrements DNS dans OVH (SPF + DKIM pour `methode-vision.com`) — Claude guide pas à pas
+3. Récupérer la clé API → `RESEND_API_KEY` dans `.env`
+
+**Pourquoi pas MailerLite** : leur API est pour les campagnes/newsletters, pas pour le transactionnel. Leur token ne permet pas l'envoi d'emails arbitraires.  
+**Pourquoi pas GHL** : API conçue pour CRM, complexe pour du transactionnel pur.
 
 **Flow** :
 1. Lien "Mot de passe oublié" sur la page `/login`
@@ -165,39 +184,89 @@ docker exec vision-app ./node_modules/.bin/prisma db seed
 3. Email envoyé avec lien tokenisé (`/reset-password?token=xxx`)
 4. Token stocké dans `PasswordResetToken` (expiration 1h, usage unique)
 
-**Variables d'env à ajouter** :
-```
-SMTP_HOST=
-SMTP_PORT=465
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM="noreply@methode-vision.com"
-```
-
 ### 5.3 Google OAuth
 
 **Pour** : clients, coaches ET admins  
 **Comportement** :
-- Un utilisateur existant (créé manuellement) peut se connecter via Google avec le même email → les comptes sont liés automatiquement
-- Un email inconnu via Google → refus : "Aucun compte n'existe pour cet email, contactez votre coach"
-- Bouton "Se connecter avec Google" sur la page `/login`
+- Utilisateur existant → connexion Google liée automatiquement par email
+- Email inconnu → refus : "Aucun compte n'existe pour cet email, contactez votre coach"
+- Bouton "Se connecter avec Google" sur `/login`
 
-**Prérequis à configurer** :
-1. Créer un projet sur [Google Cloud Console](https://console.cloud.google.com)
-2. Activer l'API "Google+ API" ou "Google Identity"
-3. Créer des credentials OAuth 2.0 (Web application)
-4. Redirect URI autorisée : `https://programme.methode-vision.com/api/auth/callback/google`
-5. Récupérer `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET`
-
-**Variables d'env à ajouter** :
-```
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-```
+**Setup requis (à faire ensemble)** :
+1. Google Cloud Console → nouveau projet
+2. Activer Google Identity API
+3. OAuth 2.0 Credentials → Web application
+4. Redirect URI : `https://programme.methode-vision.com/api/auth/callback/google`
+5. Récupérer `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`
 
 **Modifications code** :
-- `prisma/schema.prisma` : ajouter modèle `Account` (requis par NextAuth pour OAuth)
-- `src/lib/auth.ts` : ajouter provider Google + logique de liaison de compte
+- `prisma/schema.prisma` : ajouter modèle `Account` (requis NextAuth OAuth)
+- `src/lib/auth.ts` : provider Google + logique liaison compte existant
+
+### 5.4 Audit d'onboarding (remplace Tally)
+
+**Concept** :
+- S'appelle "Audit" dans l'interface (pas "sondage")
+- Première étape obligatoire pour tout nouveau client
+- 3 types : `INITIAL` (début) · `MID` (mi-parcours) · `FINAL` (fin de programme)
+- Questions MID et FINAL à définir ultérieurement — le modèle est flexible
+- Statuts : `DRAFT` → `SUBMITTED` (coach peut remettre en DRAFT pour réouverture)
+- Le client remplit, le coach peut rouvrir mais c'est toujours le client qui répond
+- Coach peut commenter par section (7 sections)
+- Import manuel possible pour clients existants (copier/coller depuis Tally)
+
+**7 sections de l'audit INITIAL** :
+1. Où j'en suis aujourd'hui (1 texte libre + 7 sliders 0-10 + 1 texte "pourquoi" + 1 texte "ce qui pèse")
+2. Mes objectifs et attentes (6 questions texte libre)
+3. Mes blocages actuels (4 questions texte libre)
+4. Mon business aujourd'hui (10 questions texte libre)
+5. Mon état personnel (3 textes + 1 slider 0-10 + 1 texte)
+6. Mon engagement (3 questions texte libre)
+7. Notre accompagnement (3 textes + 1 choix A/B + 1 slider 0-10 + 1 texte + email/téléphone)
+
+**Modèle de données** :
+```
+AuditResponse {
+  id, clientId, type (INITIAL/MID/FINAL)
+  status (DRAFT/SUBMITTED)
+  responses Json   // structure par section
+  createdAt, updatedAt, submittedAt
+}
+AuditSectionComment {
+  id, auditResponseId, coachId
+  section (1-7), content
+  createdAt, updatedAt
+}
+```
+
+### 5.5 Google Agenda (section Calendrier)
+
+**Agenda** : public, ID extrait de l'URL partagée  
+**Calendar ID** : `496c09db271a2acb70467e55d23fcb3ac3cbd9795cfa6a4dcadc7a4d55b52369@group.calendar.google.com`  
+**Implémentation** : API Google Calendar (lecture seule, clé API publique) ou iframe embed  
+**Affichage** : liste des prochains événements de groupe dans la section Calendrier
+
+**Variable d'env à ajouter** :
+```
+NEXT_PUBLIC_GOOGLE_CALENDAR_ID=496c09db271a2acb70467e55d23fcb3ac3cbd9795cfa6a4dcadc7a4d55b52369@group.calendar.google.com
+GOOGLE_CALENDAR_API_KEY=   # clé API publique Google (lecture seule, sans OAuth)
+```
+
+### 5.6 GHL Booking (iframe)
+
+Déjà prévu via `ghlBookingUrl` sur `ClientProfile`. À configurer par le coach dans le profil client.  
+**Token GHL Private Integration** : à régénérer (partagé en chat) → `GHL_API_TOKEN` dans `.env`
+
+### 5.7 Design — Refonte UI
+
+Des fichiers HTML de design seront fournis section par section (générés via Claude Design sur claude.ai/design). Intégration dans les composants React/Tailwind existants sans toucher à la logique métier.
+
+### 5.8 Fireflies (sprint suivant — V2)
+
+**API Key** : à régénérer (partagé en chat)  
+**Concept** : afficher transcripts + résumés + actions dans l'onglet client du coach  
+**Matching** : par nom du meeting (convention : "Coaching – Prénom Nom") ou par email du participant  
+**Prérequis** : définir convention de nommage des réunions dans GHL avant d'implémenter
 
 ---
 
@@ -215,7 +284,9 @@ GOOGLE_CLIENT_SECRET=
 
 ## 7. Sécurité — Actions pendantes
 
-- [ ] Révoquer le token GitHub partagé en conversation (visible dans l'historique du chat) — à faire sur https://github.com/settings/tokens
+- [ ] Régénérer le token GHL Private Integration (partagé en chat)
+- [ ] Régénérer la clé API Fireflies (partagée en chat)
+- [ ] Régénérer le token API MailerLite (partagé en chat — non utilisé finalement)
 - [ ] Changer le mot de passe du compte coach de démo après les premiers tests
 - [ ] Configurer les URLs vidéo et exercice dans le manager de modules coach
 - [ ] Configurer `ghlBookingUrl` sur les profils clients pour le calendrier individuel
@@ -226,4 +297,4 @@ GOOGLE_CLIENT_SECRET=
 
 Coller ce message en début de session :
 
-> "Je reprends le projet Vision — plateforme de coaching Next.js déployée sur mon serveur Hetzner (`46.224.86.181`). Le repo est `matteo830/programmevision`, branche de dev `claude/plan-web-app-project-7vZ8V`. Lis le fichier `SYNTHESE.md` à la racine du projet pour le contexte complet. On reprend au sprint suivant : système admin + reset mdp par email OVH SMTP + Google OAuth."
+> "Je reprends le projet Vision — plateforme de coaching Next.js déployée sur mon serveur Hetzner (`46.224.86.181`). Le repo est `matteo830/programmevision`, branche de dev `claude/plan-web-app-project-7vZ8V`. Lis le fichier `SYNTHESE.md` à la racine du projet pour le contexte complet. On démarre le sprint 2 : système admin + audit d'onboarding + reset mdp (Resend) + Google OAuth + Google Agenda + refonte UI."
