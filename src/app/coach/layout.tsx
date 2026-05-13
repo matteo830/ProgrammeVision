@@ -4,7 +4,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 
 export default async function CoachLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "COACH") redirect("/dashboard");
+  if (!session?.user || (session.user.role !== "COACH" && session.user.role !== "ADMIN")) redirect("/dashboard");
 
   return (
     <div className="min-h-screen bg-gray-50">
