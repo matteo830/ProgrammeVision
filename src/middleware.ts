@@ -5,7 +5,7 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
 
-  const publicPaths = ["/login", "/api/webhook/ghl", "/api/auth"];
+  const publicPaths = ["/login", "/forgot-password", "/reset-password", "/api/webhook/ghl", "/api/auth"];
   const isPublic = publicPaths.some((p) => pathname.startsWith(p));
 
   if (!isLoggedIn && !isPublic) {
@@ -13,11 +13,21 @@ export default auth((req) => {
   }
 
   if (isLoggedIn && pathname === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    const role = (req.auth?.user as { role?: string })?.role;
+    return NextResponse.redirect(new URL(role === "ADMIN" ? "/admin" : "/dashboard", req.url));
   }
 
   if (isLoggedIn && pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    const role = (req.auth?.user as { role?: string })?.role;
+    return NextResponse.redirect(new URL(role === "ADMIN" ? "/admin" : "/dashboard", req.url));
+  }
+
+  // Protéger /admin (sauf /admin/setup)
+  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/setup")) {
+    const role = (req.auth?.user as { role?: string })?.role;
+    if (!isLoggedIn || role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
   }
 
   return NextResponse.next();

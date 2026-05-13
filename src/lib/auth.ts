@@ -22,7 +22,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { email: credentials.email as string },
         });
 
-        if (!user) return null;
+        if (!user || !user.password) return null;
+
+        if (!user.isActive) throw new Error("ACCOUNT_DISABLED");
 
         const isValid = await bcrypt.compare(
           credentials.password as string,

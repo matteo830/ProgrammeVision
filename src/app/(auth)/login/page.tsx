@@ -1,20 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("reset") === "success") {
+      setSuccess("Mot de passe réinitialisé. Vous pouvez vous connecter.");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,7 +39,11 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Email ou mot de passe incorrect");
+      if (result.error.includes("ACCOUNT_DISABLED")) {
+        setError("Votre compte a été désactivé. Contactez votre coach.");
+      } else {
+        setError("Email ou mot de passe incorrect.");
+      }
       return;
     }
 
@@ -92,11 +105,20 @@ export default function LoginPage() {
             {error && (
               <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-xl">{error}</p>
             )}
+            {success && (
+              <p className="text-sm text-green-700 bg-green-50 px-4 py-2 rounded-xl">{success}</p>
+            )}
 
             <Button type="submit" className="w-full mt-2" disabled={loading}>
               {loading ? "Connexion..." : "Se connecter"}
             </Button>
           </form>
+
+          <div className="mt-4 text-center">
+            <Link href="/forgot-password" className="text-sm text-gray-500 hover:text-gray-700 underline">
+              Mot de passe oublié ?
+            </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["omitApi"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -33,6 +34,17 @@ enum NoteVisibility {
   TEAM_ONLY
 }
 
+enum AuditType {
+  INITIAL
+  MID
+  FINAL
+}
+
+enum AuditStatus {
+  DRAFT
+  SUBMITTED
+}
+
 enum SessionType {
   GROUP
   INDIVIDUAL
@@ -47,23 +59,28 @@ enum ProgressStatus {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
-  password      String
+  password      String?
   firstName     String
   lastName      String
   role          Role      @default(CLIENT)
   avatarUrl     String?
+  isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Relations client
-  clientProfile     ClientProfile?
-  moduleProgresses  ModuleProgress[]
-  dailyActions      DailyAction[]
-  gratitudes        Gratitude[]
-  weeklyVictories   WeeklyVictory[]
-  questions         Question[]
-  questionReplies   QuestionReply[]
-  coachingNotes     CoachingNote[]
+  clientProfile        ClientProfile?
+  moduleProgresses     ModuleProgress[]
+  dailyActions         DailyAction[]
+  gratitudes           Gratitude[]
+  weeklyVictories      WeeklyVictory[]
+  questions            Question[]
+  questionReplies      QuestionReply[]
+  coachingNotes        CoachingNote[]
+  auditResponses       AuditResponse[]
+  auditComments        AuditSectionComment[]
+  passwordResetTokens  PasswordResetToken[]
+  accounts             Account[]
 
   // Relations coach
   assignedClients   CoachClientAssignment[] @relation("CoachAssignments")
@@ -239,4 +256,61 @@ model Inspiration {
   author    String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  @@unique([provider, providerAccountId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model AuditResponse {
+  id          String      @id @default(cuid())
+  clientId    String
+  client      User        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type        AuditType   @default(INITIAL)
+  status      AuditStatus @default(DRAFT)
+  responses   Json        @default("{}")
+  submittedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  comments    AuditSectionComment[]
+
+  @@unique([clientId, type])
+}
+
+model AuditSectionComment {
+  id              String        @id @default(cuid())
+  auditResponseId String
+  auditResponse   AuditResponse @relation(fields: [auditResponseId], references: [id], onDelete: Cascade)
+  coachId         String
+  coach           User          @relation(fields: [coachId], references: [id])
+  section         Int
+  content         String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([auditResponseId, coachId, section])
 }
