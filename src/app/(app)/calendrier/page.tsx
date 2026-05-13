@@ -10,7 +10,7 @@ export default async function CalendrierPage() {
   const userId = session.user.id;
   const now = new Date();
 
-  const [upcoming, past, assignmentRow, coaches, calendarUrl] = await Promise.all([
+  const [upcoming, past, assignmentRow, coaches, calendarUrl, currentUser] = await Promise.all([
     prisma.coachingSession.findFirst({
       where: { clientId: userId, scheduledAt: { gt: now } },
       orderBy: { scheduledAt: "asc" },
@@ -39,6 +39,7 @@ export default async function CalendrierPage() {
       orderBy: { firstName: "asc" },
     }),
     Promise.resolve(process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_URL ?? ""),
+    prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, email: true, phone: true } }),
   ]);
 
   const assignedCoach = assignmentRow?.coach ?? null;
@@ -51,6 +52,10 @@ export default async function CalendrierPage() {
       past={past as Parameters<typeof CalendrierClient>[0]["past"]}
       assignedCoach={assignedCoach as Parameters<typeof CalendrierClient>[0]["assignedCoach"]}
       currentUserId={userId}
+      clientFirstName={currentUser?.firstName ?? ""}
+      clientLastName={currentUser?.lastName ?? ""}
+      clientEmail={currentUser?.email ?? ""}
+      clientPhone={currentUser?.phone ?? null}
     />
   );
 }

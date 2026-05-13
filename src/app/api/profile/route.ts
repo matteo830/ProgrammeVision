@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { firstName, lastName, avatarUrl, currentPassword, newPassword, profile } = body;
+  const { firstName, lastName, avatarUrl, phone, currentPassword, newPassword, profile } = body;
 
   if (newPassword) {
     const user = await prisma.user.findUnique({ where: { id: session.user.id } });
@@ -45,6 +45,7 @@ export async function PATCH(req: NextRequest) {
       ...(firstName && { firstName }),
       ...(lastName && { lastName }),
       ...(avatarUrl !== undefined && { avatarUrl }),
+      ...(phone !== undefined && { phone: phone || null }),
     },
     omit: { password: true },
   });

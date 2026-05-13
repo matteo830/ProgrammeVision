@@ -64,6 +64,7 @@ model User {
   lastName      String
   role          Role      @default(CLIENT)
   avatarUrl        String?
+  phone            String?
   ghlCalendarSlug  String?
   isActive         Boolean   @default(true)
   createdAt     DateTime  @default(now())

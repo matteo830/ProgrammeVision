@@ -18,6 +18,7 @@ interface ProfilViewProps {
     firstName: string;
     lastName: string;
     email: string;
+    phone: string | null;
     role: string;
     avatarUrl: string | null;
     clientProfile: {
@@ -55,7 +56,7 @@ function InputField({ label, value, onChange, type = "text", disabled = false, p
 }
 
 export function ProfilView({ user }: ProfilViewProps) {
-  const [form, setForm] = useState({ firstName: user.firstName, lastName: user.lastName });
+  const [form, setForm] = useState({ firstName: user.firstName, lastName: user.lastName, phone: user.phone ?? "" });
   const [objective, setObjective] = useState(user.clientProfile?.objective6months ?? "");
   const [finances, setFinances] = useState({
     currentRevenue: user.clientProfile?.currentRevenue?.toString() ?? "",
@@ -80,6 +81,7 @@ export function ProfilView({ user }: ProfilViewProps) {
       body: JSON.stringify({
         firstName: form.firstName,
         lastName: form.lastName,
+        phone: form.phone || null,
         profile: {
           objective6months: objective || null,
           currentRevenue: finances.currentRevenue ? parseFloat(finances.currentRevenue) : null,
@@ -175,6 +177,7 @@ export function ProfilView({ user }: ProfilViewProps) {
           <InputField label="Nom" value={form.lastName} onChange={(v) => setForm({ ...form, lastName: v })} />
         </div>
         <InputField label="Email" value={user.email} disabled />
+        <InputField label="Téléphone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} type="tel" placeholder="+33 6 00 00 00 00" />
         {messages.profile && (
           <p style={{ fontSize: 12, fontWeight: 600, color: messages.profile.includes("✓") ? C.greenAccent : C.coralEnd, marginTop: 8, marginBottom: 0 }}>
             {messages.profile}

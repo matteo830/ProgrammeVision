@@ -59,6 +59,10 @@ interface CalendrierClientProps {
   past: CoachingSession[];
   assignedCoach: Coach | null;
   currentUserId: string;
+  clientFirstName: string;
+  clientLastName: string;
+  clientEmail: string;
+  clientPhone: string | null;
 }
 
 function formatScheduledAt(date: Date | string): string {
@@ -92,6 +96,10 @@ export function CalendrierClient({
   past: initialPast,
   assignedCoach,
   currentUserId,
+  clientFirstName,
+  clientLastName,
+  clientEmail,
+  clientPhone,
 }: CalendrierClientProps) {
   const [showBookingForCoachId, setShowBookingForCoachId] = useState<string | null>(null);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
@@ -102,7 +110,13 @@ export function CalendrierClient({
   const coachesWithSlug = coaches.filter((c) => c.ghlCalendarSlug);
 
   function getBookingUrl(slug: string) {
-    return `https://api.leadconnectorhq.com/widget/booking/${slug}`;
+    const params = new URLSearchParams();
+    if (clientFirstName) params.set("firstname", clientFirstName);
+    if (clientLastName) params.set("lastname", clientLastName);
+    if (clientEmail) params.set("email", clientEmail);
+    if (clientPhone) params.set("phone", clientPhone);
+    const query = params.toString();
+    return `https://api.leadconnectorhq.com/widget/booking/${slug}${query ? `?${query}` : ""}`;
   }
 
   async function handleMarkAction(sessionId: string, actionId: string, completed: boolean) {
@@ -180,13 +194,41 @@ export function CalendrierClient({
         <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: "-0.025em" }}>Calendrier</h1>
       </div>
 
+      {/* Group events — always first */}
+      <div style={{ background: "#FFFFFF", borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 14 }}>
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.borderSoft}`, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 11,
+            background: `linear-gradient(160deg, ${C.greenDeep} 0%, #07251F 100%)`,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18,
+          }}>📅</div>
+          <div>
+            <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: C.ink }}>Événements collectifs VISION</h2>
+            <p style={{ fontSize: 11, color: C.inkMute, margin: "2px 0 0" }}>Workshops, lives de groupe et événements communs</p>
+          </div>
+        </div>
+        {calendarUrl ? (
+          <iframe
+            src={calendarUrl}
+            style={{ width: "100%", display: "block", border: "none" }}
+            height={420}
+          />
+        ) : (
+          <div style={{ padding: "32px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>📆</div>
+            <p style={{ fontSize: 13, color: C.inkMute, margin: 0 }}>Le calendrier collectif VISION sera disponible ici.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Individual coaching — always second */}
       <div style={{ background: "#FFFFFF", borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 14 }}>
         <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.borderSoft}`, display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{
             width: 38, height: 38, borderRadius: 11,
             background: `linear-gradient(135deg, ${C.coralStart} 0%, ${C.coralEnd} 100%)`,
             display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18,
-          }}>📅</div>
+          }}>🎯</div>
           <div>
             <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: C.ink }}>Coaching individuel</h2>
             <p style={{ fontSize: 11, color: C.inkMute, margin: "2px 0 0" }}>Tes séances de coaching personnalisé</p>
@@ -487,32 +529,6 @@ export function CalendrierClient({
           </div>
         </div>
       )}
-
-      <div style={{ background: "#FFFFFF", borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.borderSoft}`, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 11,
-            background: `linear-gradient(160deg, ${C.greenDeep} 0%, #07251F 100%)`,
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18,
-          }}>📅</div>
-          <div>
-            <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: C.ink }}>Événements collectifs VISION</h2>
-            <p style={{ fontSize: 11, color: C.inkMute, margin: "2px 0 0" }}>Workshops, lives de groupe et événements communs</p>
-          </div>
-        </div>
-        {calendarUrl ? (
-          <iframe
-            src={calendarUrl}
-            style={{ width: "100%", display: "block", border: "none" }}
-            height={420}
-          />
-        ) : (
-          <div style={{ padding: "32px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 10 }}>📆</div>
-            <p style={{ fontSize: 13, color: C.inkMute, margin: 0 }}>Le calendrier collectif VISION sera disponible ici.</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
