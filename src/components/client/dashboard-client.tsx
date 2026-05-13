@@ -2,30 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Sparkles,
-  Bell,
-  Target,
-  CheckCircle2,
-  Circle,
-  BookOpen,
-  Calendar,
-  ListTodo,
-  MessageCircle,
-  Trophy,
-  FileText,
-  BarChart2,
-  Quote,
-  Heart,
-  Star,
-  Flame,
-  ChevronRight,
-} from "lucide-react";
-import { cn, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 interface DashboardClientProps {
   user: { firstName: string; lastName: string; avatarUrl: string | null };
@@ -49,9 +26,6 @@ interface DashboardClientProps {
   recentVictory: { content: string; weekStartDate: Date } | null;
   inspiration: { quote: string; author: string | null } | null;
 }
-
-const phaseColors = ["bg-gray-100", "bg-green-100", "bg-amber-100", "bg-blue-100"];
-const phaseTextColors = ["text-gray-600", "text-green-700", "text-amber-700", "text-blue-700"];
 
 export function DashboardClient({
   user,
@@ -109,296 +83,767 @@ export function DashboardClient({
     setShowVictoryForm(false);
   }
 
-  const currentPhaseIndex = progress.phases.findIndex(
-    (p) => p.order === progress.currentPhase.order
-  );
+  const navTiles = [
+    { href: "/formation",  emoji: "📚", label: "Formation",  bg: "#CFDDC2", color: "#4A6638" },
+    { href: "/coaching",   emoji: "💬", label: "Coaching",   bg: "#D8C7E5", color: "#5D3F7A" },
+    { href: "/questions",  emoji: "❓", label: "Questions",  bg: "#C2D5E5", color: "#3A5E80" },
+    { href: "/victoires",  emoji: "🏆", label: "Victoires",  bg: "#F5C9CE", color: "#A8425C" },
+    { href: "/calendrier", emoji: "📅", label: "Calendrier", bg: "#D2E0E8", color: "#3D5C70" },
+    { href: "/profil",     emoji: "👤", label: "Profil",     bg: "#F5D5B0", color: "#A6611F" },
+  ];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-bold text-lg">
+    <div
+      style={{
+        maxWidth: 640,
+        margin: "0 auto",
+        padding: "24px 16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        background: "#FAF6EB",
+        minHeight: "100vh",
+      }}
+    >
+      {/* ── 1. HEADER ── */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Avatar circle */}
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: "50%",
+              background: "#0E3D34",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
             {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+              <img
+                src={user.avatarUrl}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
             ) : (
-              user.firstName[0]
+              <span style={{ color: "#E8C56F", fontWeight: 700, fontSize: 18 }}>
+                {user.firstName[0]}
+              </span>
             )}
           </div>
+          {/* Greeting text */}
           <div>
-            <p className="text-sm text-gray-500">{greeting}</p>
-            <h2 className="font-bold text-gray-900 flex items-center gap-1">
-              {user.firstName} <Sparkles className="w-4 h-4 text-amber-400" />
+            <p style={{ fontSize: 12, color: "#7A7060", margin: 0 }}>
+              {greeting}
+            </p>
+            <h2
+              style={{
+                fontWeight: 700,
+                color: "#1A1208",
+                margin: 0,
+                fontSize: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              {user.firstName} <span>✨</span>
             </h2>
           </div>
         </div>
-        <button className="relative p-2 rounded-xl hover:bg-gray-100">
-          <Bell className="w-5 h-5 text-gray-600" />
+        {/* Bell button */}
+        <button
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 11,
+            background: "#fff",
+            border: "1px solid #E8DFC8",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+          aria-label="Notifications"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#7A7060"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
         </button>
       </div>
 
-      {/* Objectif 6 mois */}
-      <div className="bg-gradient-to-br from-green-800 to-green-700 rounded-3xl p-5 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />
-        <div className="flex items-start gap-2 mb-1">
-          <Target className="w-4 h-4 mt-0.5 text-amber-300 flex-shrink-0" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-green-200">
-            Mon objectif 6 mois
-          </p>
-        </div>
-        <p className="text-base font-semibold leading-snug mt-1 relative z-10">
+      {/* ── 2. OBJECTIVE CARD ── */}
+      <div
+        style={{
+          background: "linear-gradient(160deg, #0E3D34 0%, #07251F 100%)",
+          borderRadius: 22,
+          padding: "18px 20px",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* Mountain SVG decoration */}
+        <svg
+          width="120"
+          height="80"
+          viewBox="0 0 120 80"
+          style={{
+            position: "absolute",
+            bottom: 0,
+            right: 0,
+            opacity: 0.3,
+            pointerEvents: "none",
+          }}
+          fill="none"
+        >
+          <polygon points="60,10 110,80 10,80" fill="#E8C56F" />
+          <polygon points="90,30 120,80 60,80" fill="#fff" />
+        </svg>
+        {/* Label */}
+        <p
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            color: "#E8C56F",
+            textTransform: "uppercase",
+            margin: "0 0 8px 0",
+          }}
+        >
+          Mon objectif 6 mois
+        </p>
+        {/* Objective text */}
+        <p
+          style={{
+            fontSize: 15,
+            fontWeight: 600,
+            color: "#fff",
+            margin: 0,
+            lineHeight: 1.4,
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
           {profile?.objective6months ?? "Définis ton objectif dans ton profil"}
         </p>
+        {/* Échéance */}
         {profile?.programEndDate && (
-          <p className="text-xs text-green-300 mt-2 flex items-center gap-1">
-            <span>Échéance :</span>
-            <span>{formatDate(profile.programEndDate)}</span>
+          <p
+            style={{
+              fontSize: 12,
+              color: "rgba(255,255,255,0.6)",
+              margin: "8px 0 0 0",
+            }}
+          >
+            Échéance : {formatDate(profile.programEndDate)}
           </p>
         )}
       </div>
 
-      {/* Progression globale */}
-      <Card>
-        <CardContent className="pt-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-900">Ma progression globale</h3>
-            <span className="text-2xl font-bold text-green-700">{progress.globalPercent}%</span>
-          </div>
-          <Progress value={progress.globalPercent} className="h-3" />
-          <p className="text-xs text-gray-500 mt-2">
-            {progress.globalPercent >= 80
-              ? "🔥 Incroyable, tu es presque au bout !"
-              : progress.globalPercent >= 50
-              ? "🌟 Tu es sur la bonne voie ! Continue comme ça"
-              : progress.globalPercent >= 20
-              ? "💪 Bon départ, continue ta lancée !"
-              : "🚀 C'est parti ! Chaque étape compte"}
+      {/* ── 3. PROGRESS CARD ── */}
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 20,
+          border: "1px solid #E8DFC8",
+          padding: "18px 20px",
+        }}
+      >
+        {/* Title + percentage */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
+          <p style={{ fontWeight: 600, color: "#1A1208", margin: 0, fontSize: 15 }}>
+            Ma progression
           </p>
-
-          {/* Timeline phases */}
-          <div className="flex items-center gap-1 mt-4 overflow-x-auto pb-1">
-            {progress.phases.map((phase, i) => (
-              <div key={phase.order} className="flex items-center gap-1 flex-shrink-0">
-                <div className="flex flex-col items-center">
-                  <div
-                    className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold",
-                      phase.isCompleted
-                        ? "bg-green-500 text-white"
-                        : phase.order === progress.currentPhase.order
-                        ? "bg-amber-400 text-green-900 ring-2 ring-amber-300"
-                        : phase.isUnlocked
-                        ? "bg-gray-200 text-gray-600"
-                        : "bg-gray-100 text-gray-400"
-                    )}
-                  >
-                    {phase.isCompleted ? (
-                      <CheckCircle2 className="w-4 h-4" />
-                    ) : (
-                      phase.order
-                    )}
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[9px] mt-0.5 font-medium",
-                      phase.order === progress.currentPhase.order
-                        ? "text-amber-600"
-                        : phase.isCompleted
-                        ? "text-green-600"
-                        : "text-gray-400"
-                    )}
-                  >
-                    {phase.title.split(" ")[0]}
-                  </span>
-                </div>
-                {i < progress.phases.length - 1 && (
-                  <div
-                    className={cn(
-                      "h-0.5 w-6 mb-4",
-                      progress.phases[i + 1].isUnlocked ? "bg-green-300" : "bg-gray-200"
-                    )}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions du jour */}
-      <Card>
-        <CardContent className="pt-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Flame className="w-5 h-5 text-orange-500" />
-            <h3 className="font-semibold text-gray-900">Mes actions à faire</h3>
-          </div>
-
-          {actions.length === 0 ? (
-            <div className="text-center py-4">
-              <CheckCircle2 className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">Toutes tes actions sont faites ! 🎉</p>
-              <Link href="/formation">
-                <Button variant="ghost" size="sm" className="mt-2">
-                  Voir ma formation
-                </Button>
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {actions.map((action) => (
+          <span style={{ fontSize: 24, fontWeight: 700, color: "#0E3D34" }}>
+            {progress.globalPercent}%
+          </span>
+        </div>
+        {/* Progress bar */}
+        <div
+          style={{
+            height: 10,
+            borderRadius: 999,
+            background: "#E8DFC8",
+            overflow: "hidden",
+            marginBottom: 12,
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${progress.globalPercent}%`,
+              background: "linear-gradient(90deg, #0E3D34, #2E7D6B)",
+              borderRadius: 999,
+              transition: "width 0.4s ease",
+            }}
+          />
+        </div>
+        {/* Motivation text */}
+        <p style={{ fontSize: 11, color: "#7A7060", margin: "0 0 14px 0" }}>
+          {progress.globalPercent >= 80
+            ? "🔥 Incroyable, tu es presque au bout !"
+            : progress.globalPercent >= 50
+            ? "🌟 Tu es sur la bonne voie ! Continue comme ça"
+            : progress.globalPercent >= 20
+            ? "💪 Bon départ, continue ta lancée !"
+            : "🚀 C'est parti ! Chaque étape compte"}
+        </p>
+        {/* Phase timeline */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 0,
+            overflowX: "auto",
+            paddingBottom: 4,
+          }}
+        >
+          {progress.phases.map((phase, i) => (
+            <div
+              key={phase.order}
+              style={{ display: "flex", alignItems: "center", flexShrink: 0 }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                {/* Circle */}
                 <div
-                  key={action.id}
-                  className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    ...(phase.isCompleted
+                      ? { background: "#0E3D34", color: "#E8C56F" }
+                      : phase.order === progress.currentPhase.order
+                      ? {
+                          background: "#E8C56F",
+                          color: "#07251F",
+                          boxShadow: "0 0 0 3px #F5DFA0",
+                        }
+                      : { background: "#E4DDD0", color: "#9E9080" }),
+                  }}
                 >
-                  <button
-                    onClick={() => completeAction(action.id)}
-                    className="text-gray-400 hover:text-green-500 transition-colors flex-shrink-0"
-                  >
-                    <Circle className="w-5 h-5" />
-                  </button>
-                  <span className="text-sm text-gray-800 flex-1">{action.content}</span>
+                  {phase.isCompleted ? (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    phase.order
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Gratitude + Victoire */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Heart className="w-4 h-4 text-rose-400" />
-              <p className="text-xs font-semibold text-gray-700">Gratitude du jour</p>
-            </div>
-            {recentGratitude ? (
-              <p className="text-xs text-gray-500 line-clamp-2">{recentGratitude.content}</p>
-            ) : (
-              <p className="text-xs text-gray-400 italic">Pas encore écrite...</p>
-            )}
-            <button
-              onClick={() => setShowGratitudeForm(true)}
-              className="mt-2 text-xs text-green-700 font-medium flex items-center gap-1 hover:text-green-600"
-            >
-              Écrire ✍️
-            </button>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md transition-shadow">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Trophy className="w-4 h-4 text-amber-500" />
-              <p className="text-xs font-semibold text-gray-700">Victoire de la semaine</p>
-            </div>
-            {recentVictory ? (
-              <p className="text-xs text-gray-500 line-clamp-2">{recentVictory.content}</p>
-            ) : (
-              <p className="text-xs text-gray-400 italic">Célèbre tes avancées !</p>
-            )}
-            <button
-              onClick={() => setShowVictoryForm(true)}
-              className="mt-2 text-xs text-green-700 font-medium flex items-center gap-1 hover:text-green-600"
-            >
-              Écrire ✨
-            </button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Formulaire gratitude */}
-      {showGratitudeForm && (
-        <Card>
-          <CardContent className="pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-800">💛 Ta gratitude du jour</p>
-            <Textarea
-              placeholder="Je suis reconnaissant(e) pour..."
-              value={gratitude}
-              onChange={(e) => setGratitude(e.target.value)}
-              className="min-h-[80px]"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <Button size="sm" onClick={saveGratitude} disabled={savingGratitude}>
-                {savingGratitude ? "Enregistrement..." : "Enregistrer"}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setShowGratitudeForm(false)}>
-                Annuler
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Formulaire victoire */}
-      {showVictoryForm && (
-        <Card>
-          <CardContent className="pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-800">🏆 Ta victoire de la semaine</p>
-            <Textarea
-              placeholder="Cette semaine, j'ai..."
-              value={victory}
-              onChange={(e) => setVictory(e.target.value)}
-              className="min-h-[80px]"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <Button size="sm" onClick={saveVictory} disabled={savingVictory}>
-                {savingVictory ? "Enregistrement..." : "Enregistrer"}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setShowVictoryForm(false)}>
-                Annuler
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Navigation rapide */}
-      <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Mon tableau de bord</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { href: "/formation", icon: BookOpen, label: "Formation", color: "bg-green-50 text-green-700" },
-            { href: "/coaching", icon: MessageCircle, label: "Coachings", color: "bg-purple-50 text-purple-700" },
-            { href: "/formation#actions", icon: ListTodo, label: "Actions à faire", color: "bg-amber-50 text-amber-700" },
-            { href: "/questions", icon: FileText, label: "Mes questions", color: "bg-blue-50 text-blue-700" },
-            { href: "/victoires", icon: Trophy, label: "Mes victoires", color: "bg-rose-50 text-rose-700" },
-            { href: "/calendrier", icon: Calendar, label: "Calendrier", color: "bg-teal-50 text-teal-700" },
-          ].map((item) => (
-            <Link key={item.href} href={item.href}>
-              <div className={cn(
-                "rounded-2xl p-3 flex flex-col items-center gap-2 text-center hover:scale-105 transition-transform cursor-pointer",
-                item.color
-              )}>
-                <item.icon className="w-5 h-5" />
-                <span className="text-[11px] font-semibold leading-tight">{item.label}</span>
+                {/* Phase label */}
+                <span
+                  style={{
+                    fontSize: 9,
+                    marginTop: 3,
+                    fontWeight: 500,
+                    textAlign: "center",
+                    maxWidth: 40,
+                    color: phase.isCompleted
+                      ? "#0E3D34"
+                      : phase.order === progress.currentPhase.order
+                      ? "#B8861F"
+                      : "#9E9080",
+                  }}
+                >
+                  {phase.title.split(" ")[0]}
+                </span>
               </div>
-            </Link>
+              {/* Connector line */}
+              {i < progress.phases.length - 1 && (
+                <div
+                  style={{
+                    height: 2,
+                    width: 24,
+                    marginBottom: 14,
+                    flexShrink: 0,
+                    background: progress.phases[i + 1].isUnlocked
+                      ? "#2E7D6B"
+                      : "#E4DDD0",
+                  }}
+                />
+              )}
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Inspiration */}
-      {inspiration && (
-        <Card className="bg-green-50 border-green-100">
-          <CardContent className="pt-5">
-            <div className="flex gap-3">
-              <Quote className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-green-900 italic leading-relaxed">
-                  {inspiration.quote}
-                </p>
-                {inspiration.author && (
-                  <p className="text-xs text-green-600 mt-2 font-medium">
-                    — {inspiration.author}
-                  </p>
-                )}
-              </div>
+      {/* ── 4. ACTIONS CARD ── */}
+      <div
+        style={{
+          background:
+            "linear-gradient(135deg, #FF8A6B 0%, #F46B7A 55%, #E8527D 100%)",
+          borderRadius: 24,
+          padding: "18px 20px",
+          color: "#fff",
+        }}
+      >
+        <p style={{ fontWeight: 700, fontSize: 15, margin: "0 0 14px 0" }}>
+          🔥 Mes actions à faire
+        </p>
+        {actions.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "12px 0" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: 8,
+              }}
+            >
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0E3D34"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
             </div>
-          </CardContent>
-        </Card>
+            <p style={{ color: "#fff", fontSize: 14, margin: 0 }}>
+              Toutes tes actions sont faites! 🎉
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {actions.map((action) => (
+              <div
+                key={action.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  background: "rgba(255,255,255,0.18)",
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                }}
+              >
+                <button
+                  onClick={() => completeAction(action.id)}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: "50%",
+                    border: "2px solid rgba(255,255,255,0.7)",
+                    background: "transparent",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  aria-label="Marquer comme fait"
+                />
+                <span
+                  style={{ fontSize: 14, color: "#fff", flex: 1, lineHeight: 1.4 }}
+                >
+                  {action.content}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── 5. GRATITUDE + VICTORY TILES ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {/* Gratitude tile */}
+        <div
+          style={{ background: "#F5C9CE", borderRadius: 20, padding: "14px 16px" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginBottom: 8,
+            }}
+          >
+            <span>🤍</span>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#A8425C",
+                margin: 0,
+              }}
+            >
+              Gratitude du jour
+            </p>
+          </div>
+          {showGratitudeForm ? (
+            <>
+              <textarea
+                placeholder="Je suis reconnaissant(e) pour..."
+                value={gratitude}
+                onChange={(e) => setGratitude(e.target.value)}
+                autoFocus
+                rows={3}
+                style={{
+                  width: "100%",
+                  borderRadius: 10,
+                  border: "1px solid rgba(168,66,92,0.3)",
+                  padding: "8px 10px",
+                  fontSize: 12,
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  background: "rgba(255,255,255,0.6)",
+                  color: "#A8425C",
+                }}
+              />
+              <div
+                style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}
+              >
+                <button
+                  onClick={saveGratitude}
+                  disabled={savingGratitude}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #FF8A6B 0%, #E8527D 100%)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "6px 14px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: savingGratitude ? "not-allowed" : "pointer",
+                    opacity: savingGratitude ? 0.7 : 1,
+                  }}
+                >
+                  {savingGratitude ? "..." : "Enregistrer"}
+                </button>
+                <button
+                  onClick={() => setShowGratitudeForm(false)}
+                  style={{
+                    background: "transparent",
+                    color: "#A8425C",
+                    border: "1px solid rgba(168,66,92,0.4)",
+                    borderRadius: 8,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  Annuler
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {recentGratitude ? (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#A8425C",
+                    margin: "0 0 8px 0",
+                    lineHeight: 1.5,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {recentGratitude.content}
+                </p>
+              ) : (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#C47090",
+                    fontStyle: "italic",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  Pas encore écrite...
+                </p>
+              )}
+              <button
+                onClick={() => setShowGratitudeForm(true)}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "#A8425C",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                Écrire ✍️
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Victory tile */}
+        <div
+          style={{ background: "#F5D5B0", borderRadius: 20, padding: "14px 16px" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginBottom: 8,
+            }}
+          >
+            <span>🏆</span>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#A6611F",
+                margin: 0,
+              }}
+            >
+              Victoire de la semaine
+            </p>
+          </div>
+          {showVictoryForm ? (
+            <>
+              <textarea
+                placeholder="Cette semaine, j'ai..."
+                value={victory}
+                onChange={(e) => setVictory(e.target.value)}
+                autoFocus
+                rows={3}
+                style={{
+                  width: "100%",
+                  borderRadius: 10,
+                  border: "1px solid rgba(166,97,31,0.3)",
+                  padding: "8px 10px",
+                  fontSize: 12,
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  background: "rgba(255,255,255,0.6)",
+                  color: "#A6611F",
+                }}
+              />
+              <div
+                style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}
+              >
+                <button
+                  onClick={saveVictory}
+                  disabled={savingVictory}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #FF8A6B 0%, #E8527D 100%)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "6px 14px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: savingVictory ? "not-allowed" : "pointer",
+                    opacity: savingVictory ? 0.7 : 1,
+                  }}
+                >
+                  {savingVictory ? "..." : "Enregistrer"}
+                </button>
+                <button
+                  onClick={() => setShowVictoryForm(false)}
+                  style={{
+                    background: "transparent",
+                    color: "#A6611F",
+                    border: "1px solid rgba(166,97,31,0.4)",
+                    borderRadius: 8,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  Annuler
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {recentVictory ? (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#A6611F",
+                    margin: "0 0 8px 0",
+                    lineHeight: 1.5,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {recentVictory.content}
+                </p>
+              ) : (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "#C4883A",
+                    fontStyle: "italic",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  Célèbre tes avancées !
+                </p>
+              )}
+              <button
+                onClick={() => setShowVictoryForm(true)}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "#A6611F",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                Écrire ✨
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── 6. NAV TILES GRID (3x2) ── */}
+      <div
+        style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}
+      >
+        {navTiles.map((item) => (
+          <Link key={item.href} href={item.href} style={{ textDecoration: "none" }}>
+            <div
+              style={{
+                background: item.bg,
+                borderRadius: 20,
+                padding: 14,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 6,
+                textAlign: "center",
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ fontSize: 24 }}>{item.emoji}</span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: item.color,
+                  lineHeight: 1.3,
+                }}
+              >
+                {item.label}
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* ── 7. INSPIRATION BLOCK ── */}
+      {inspiration && (
+        <div
+          style={{
+            background: "#E8EFEC",
+            borderRadius: 18,
+            border: "1px solid #D7E5DE",
+            padding: "18px 20px",
+          }}
+        >
+          {/* Big quote mark */}
+          <svg
+            width="32"
+            height="28"
+            viewBox="0 0 32 28"
+            fill="none"
+            style={{ marginBottom: 8, display: "block" }}
+          >
+            <text
+              x="0"
+              y="26"
+              fontSize="40"
+              fill="#3FA88E"
+              fontFamily="Georgia, serif"
+            >
+              "
+            </text>
+          </svg>
+          <p
+            className="font-serif"
+            style={{
+              fontSize: 15,
+              fontStyle: "italic",
+              color: "#1A5448",
+              lineHeight: 1.6,
+              margin: "0 0 10px 0",
+            }}
+          >
+            {inspiration.quote}
+          </p>
+          {inspiration.author && (
+            <p
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "#1A5448",
+                margin: 0,
+              }}
+            >
+              — {inspiration.author}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

@@ -14,52 +14,97 @@ export default async function CalendrierPage() {
   const VISION_CALENDAR_URL = process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_URL ?? "";
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-      <h1 className="text-2xl font-bold text-gray-900">Calendrier</h1>
+    <div style={{ maxWidth: 560, margin: "0 auto", padding: "20px 16px 80px", fontFamily: "'Inter', sans-serif", color: "#1A1714" }}>
+
+      {/* Page title */}
+      <div style={{ marginBottom: 20 }}>
+        <p style={{ fontSize: 11, color: "#9A9080", margin: "0 0 2px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Mon espace</p>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: "-0.025em", color: "#1A1714" }}>Calendrier</h1>
+      </div>
 
       {/* Agenda collectif VISION */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Événements collectifs VISION</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Workshops, lives de groupe et événements communs
-          </p>
+      <div style={{ background: "#FFFFFF", borderRadius: 20, border: "1px solid #E8DFC8", overflow: "hidden", marginBottom: 14 }}>
+        <div style={{
+          padding: "14px 18px",
+          borderBottom: "1px solid #F0E8D4",
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 11,
+            background: "linear-gradient(160deg, #0E3D34 0%, #07251F 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, fontSize: 18,
+          }}>
+            📅
+          </div>
+          <div>
+            <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: "#1A1714", letterSpacing: "-0.01em" }}>
+              Événements collectifs VISION
+            </h2>
+            <p style={{ fontSize: 11, color: "#9A9080", margin: "2px 0 0" }}>
+              Workshops, lives de groupe et événements communs
+            </p>
+          </div>
         </div>
         {VISION_CALENDAR_URL ? (
           <iframe
             src={VISION_CALENDAR_URL}
-            className="w-full"
-            height="400"
-            frameBorder="0"
+            style={{ width: "100%", display: "block", border: "none" }}
+            height={420}
             scrolling="no"
           />
         ) : (
-          <div className="p-8 text-center text-gray-400 text-sm">
-            Calendrier collectif à configurer (NEXT_PUBLIC_GOOGLE_CALENDAR_URL)
+          <div style={{ padding: "32px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>📆</div>
+            <p style={{ fontSize: 13, color: "#9A9080", margin: 0, lineHeight: 1.5 }}>
+              Le calendrier collectif VISION sera disponible ici.
+            </p>
+            <p style={{ fontSize: 11, color: "#9A9080", margin: "6px 0 0" }}>
+              (Variable NEXT_PUBLIC_GOOGLE_CALENDAR_URL à configurer)
+            </p>
           </div>
         )}
       </div>
 
       {/* Réservation coaching individuel */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Coaching individuel</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Réserve ta prochaine séance avec ton coach
-          </p>
+      <div style={{ background: "#FFFFFF", borderRadius: 20, border: "1px solid #E8DFC8", overflow: "hidden" }}>
+        <div style={{
+          padding: "14px 18px",
+          borderBottom: "1px solid #F0E8D4",
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 11,
+            background: "linear-gradient(135deg, #FF8A6B 0%, #E8527D 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, fontSize: 18,
+          }}>
+            💬
+          </div>
+          <div>
+            <h2 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: "#1A1714", letterSpacing: "-0.01em" }}>
+              Coaching individuel
+            </h2>
+            <p style={{ fontSize: 11, color: "#9A9080", margin: "2px 0 0" }}>
+              Réserve ta prochaine séance avec ton coach
+            </p>
+          </div>
         </div>
         {profile?.ghlBookingUrl ? (
           <iframe
             src={profile.ghlBookingUrl}
-            className="w-full"
-            height="500"
-            frameBorder="0"
+            style={{ width: "100%", display: "block", border: "none" }}
+            height={500}
           />
         ) : (
-          <div className="p-8 text-center text-gray-400 text-sm">
-            Lien de réservation non configuré.
-            <br />
-            <span className="text-xs">Contacte ton coach pour obtenir ton lien.</span>
+          <div style={{ padding: "32px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>🗓️</div>
+            <p style={{ fontSize: 13, color: "#9A9080", margin: 0, lineHeight: 1.5 }}>
+              Ton lien de réservation n&apos;est pas encore configuré.
+            </p>
+            <p style={{ fontSize: 11, color: "#9A9080", margin: "6px 0 0" }}>
+              Contacte ton coach pour obtenir ton lien personnalisé.
+            </p>
           </div>
         )}
       </div>
