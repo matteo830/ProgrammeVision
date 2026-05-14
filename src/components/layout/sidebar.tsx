@@ -21,13 +21,20 @@ const coachNav = [
   { href: "/coach/settings", emoji: "🔧", label: "Paramètres", icon: Settings },
 ];
 
+const adminNav = [
+  { href: "/coach/clients", emoji: "👥", label: "Mes clients", icon: Users },
+  { href: "/coach/coaches", emoji: "🎓", label: "Coaches", icon: Users },
+  { href: "/admin/formations", emoji: "📚", label: "Formations", icon: BookOpen },
+  { href: "/coach/settings", emoji: "🔧", label: "Paramètres", icon: Settings },
+];
+
 interface SidebarProps {
   role: string;
 }
 
 export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
-  const nav = role === "COACH" || role === "ADMIN" ? coachNav : clientNav;
+  const nav = role === "ADMIN" ? adminNav : role === "COACH" ? coachNav : clientNav;
 
   return (
     <aside className="hidden md:flex flex-col w-64 min-h-screen fixed left-0 top-0 z-40" style={{ background: "#0E3D34" }}>

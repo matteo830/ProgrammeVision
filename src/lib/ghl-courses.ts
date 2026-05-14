@@ -9,30 +9,52 @@ export interface GhlCourseRaw {
   imageUrl?: string;
   permalink?: string;
   accessUrl?: string;
+  productType?: string;
+}
+
+// GHL v2 API endpoints to try in order
+const ENDPOINTS = [
+  `/products/?locationId=${GHL_LOCATION_ID}`,
+  `/memberships/courses/?locationId=${GHL_LOCATION_ID}`,
+  `/courses?locationId=${GHL_LOCATION_ID}`,
+];
+
+async function tryFetch(token: string, path: string) {
+  return fetch(`${GHL_BASE}${path}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Version: "2021-07-28",
+    },
+    cache: "no-store",
+  });
 }
 
 export async function fetchGhlCourses(): Promise<GhlCourseRaw[]> {
   const token = process.env.GHL_API_KEY;
   if (!token) throw new Error("GHL_API_KEY non configuré");
 
-  const res = await fetch(
-    `${GHL_BASE}/courses/?locationId=${GHL_LOCATION_ID}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Version: "2021-07-28",
-      },
-      cache: "no-store",
-    }
-  );
+  const errors: string[] = [];
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`GHL API ${res.status}: ${body.slice(0, 300)}`);
+  for (const path of ENDPOINTS) {
+    const res = await tryFetch(token, path);
+    if (!res.ok) {
+      const body = await res.text();
+      errors.push(`${path} → ${res.status}: ${body.slice(0, 150)}`);
+      continue;
+    }
+    const data = await res.json();
+    const items: GhlCourseRaw[] = Array.isArray(data)
+      ? data
+      : (data.products ?? data.courses ?? data.data ?? []);
+    // Filter to membership/course type products if productType is present
+    return items.filter(
+      (i) => !i.productType || ["MEMBERSHIP", "COURSE", "certificate"].includes(i.productType)
+    );
   }
 
-  const data = await res.json();
-  return Array.isArray(data) ? data : (data.courses ?? data.data ?? []);
+  throw new Error(
+    `Aucun endpoint GHL n'a fonctionné :\n${errors.join("\n")}`
+  );
 }
 
 export function buildAccessUrl(course: GhlCourseRaw): string {
