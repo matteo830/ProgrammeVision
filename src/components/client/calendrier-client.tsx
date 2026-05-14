@@ -111,8 +111,8 @@ export function CalendrierClient({
 
   function getBookingUrl(slug: string) {
     const params = new URLSearchParams();
-    if (clientFirstName) params.set("firstname", clientFirstName);
-    if (clientLastName) params.set("lastname", clientLastName);
+    if (clientFirstName) params.set("firstName", clientFirstName);
+    if (clientLastName) params.set("lastName", clientLastName);
     if (clientEmail) params.set("email", clientEmail);
     if (clientPhone) params.set("phone", clientPhone);
     const query = params.toString();
