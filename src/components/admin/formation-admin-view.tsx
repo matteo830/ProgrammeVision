@@ -12,7 +12,7 @@ const C = {
 
 interface Template { id: string; title: string; driveFileId: string; order: number }
 interface Lesson { id: string; title: string; order: number }
-interface Module { id: string; title: string; description: string | null; order: number; lessons: Lesson[]; templates: Template[] }
+interface Module { id: string; title: string; description: string | null; accessUrl: string | null; order: number; lessons: Lesson[]; templates: Template[] }
 interface Course { id: string; title: string; description: string | null; imageUrl: string | null; accessUrl: string | null; order: number; modules: Module[] }
 
 const btn = (variant: "primary" | "secondary" | "danger" | "ghost", extra?: CSSProperties): CSSProperties => ({
@@ -110,7 +110,7 @@ function ModuleCard({
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ title: mod.title, description: mod.description ?? "" });
+  const [form, setForm] = useState({ title: mod.title, description: mod.description ?? "", accessUrl: mod.accessUrl ?? "" });
   const [saving, setSaving] = useState(false);
   const [lessons, setLessons] = useState(mod.lessons);
   const [templates, setTemplates] = useState(mod.templates);
@@ -202,6 +202,7 @@ function ModuleCard({
             <div style={{ background: C.white, borderRadius: 12, padding: "16px", marginBottom: 14, border: `1px solid ${C.border}` }}>
               <Field label="Titre *"><input style={input} value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} /></Field>
               <Field label="Description"><textarea style={{ ...input, minHeight: 60, resize: "vertical" }} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} /></Field>
+              <Field label="Lien d'accès (optionnel)"><input style={input} value={form.accessUrl} onChange={(e) => setForm((p) => ({ ...p, accessUrl: e.target.value }))} placeholder="https://..." /></Field>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={saveModule} disabled={saving} style={btn("primary")}>Enregistrer</button>
                 <button onClick={() => setEditing(false)} style={btn("ghost")}>Annuler</button>

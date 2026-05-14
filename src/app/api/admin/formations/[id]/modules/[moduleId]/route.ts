@@ -15,13 +15,14 @@ export async function PATCH(
   if (!await requireAdmin()) return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
 
   const { moduleId } = await params;
-  const { title, description, order } = await req.json();
+  const { title, description, accessUrl, order } = await req.json();
 
   const module = await prisma.courseModule.update({
     where: { id: moduleId },
     data: {
       ...(title !== undefined && { title: title.trim() }),
       ...(description !== undefined && { description: description?.trim() || null }),
+      ...(accessUrl !== undefined && { accessUrl: accessUrl?.trim() || null }),
       ...(order !== undefined && { order }),
     },
     include: {

@@ -352,6 +352,7 @@ model CourseModule {
   course      GhlCourse        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title       String
   description String?
+  accessUrl   String?
   order       Int              @default(0)
   lessons     Lesson[]
   templates   ModuleTemplate[]
