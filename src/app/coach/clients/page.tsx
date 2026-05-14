@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { ClientActions } from "@/components/coach/client-actions";
 
 export default async function CoachClientsPage() {
   const session = await auth();
@@ -10,8 +11,8 @@ export default async function CoachClientsPage() {
   }
 
   const clients = await prisma.user.findMany({
-    where: { role: "CLIENT", isActive: true },
-    orderBy: { createdAt: "desc" },
+    where: { role: "CLIENT" },
+    orderBy: [{ isActive: "desc" }, { createdAt: "desc" }],
     include: {
       clientProfile: { select: { objective6months: true, programStartDate: true } },
       moduleProgresses: { where: { coachValidated: true }, select: { id: true } },
@@ -20,6 +21,7 @@ export default async function CoachClientsPage() {
   });
 
   const totalModules = await prisma.module.count();
+  const activeClients = clients.filter(c => c.isActive);
 
   const C = {
     greenDeep: "#0E3D34", greenAccent: "#3FA88E", greenSoft: "#E8EFEC",
@@ -58,7 +60,7 @@ export default async function CoachClientsPage() {
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
         <div style={{ background: C.greenDeep, borderRadius: 18, padding: "14px 16px", color: "#FFFFFF" }}>
-          <p style={{ fontSize: 28, fontWeight: 700, margin: 0, letterSpacing: "-0.03em" }}>{clients.length}</p>
+          <p style={{ fontSize: 28, fontWeight: 700, margin: 0, letterSpacing: "-0.03em" }}>{activeClients.length}</p>
           <p style={{ fontSize: 11, color: C.goldLight, margin: "2px 0 0", fontWeight: 600 }}>Clients actifs</p>
         </div>
         <div style={{ background: "#FFFFFF", borderRadius: 18, border: `1px solid ${C.border}`, padding: "14px 16px" }}>
@@ -85,46 +87,52 @@ export default async function CoachClientsPage() {
             const initials = `${client.firstName[0]}${client.lastName[0]}`.toUpperCase();
 
             return (
-              <Link key={client.id} href={`/coach/clients/${client.id}`} style={{ textDecoration: "none" }}>
-                <div style={{
-                  background: "#FFFFFF", borderRadius: 18, border: `1px solid ${C.border}`,
-                  padding: "14px 16px",
-                  display: "flex", alignItems: "center", gap: 14,
-                  transition: "box-shadow 0.15s",
-                }}>
-                  {/* Avatar */}
+              <div key={client.id} style={{
+                background: "#FFFFFF", borderRadius: 18, border: `1px solid ${C.border}`,
+                padding: "14px 16px",
+                display: "flex", alignItems: "center", gap: 14,
+                opacity: client.isActive ? 1 : 0.55,
+              }}>
+                {/* Avatar — clickable */}
+                <Link href={`/coach/clients/${client.id}`} style={{ display: "contents", textDecoration: "none" }}>
                   <div style={{
                     width: 44, height: 44, borderRadius: "50%",
-                    background: `linear-gradient(135deg, ${C.coralStart}, ${C.coralEnd})`,
+                    background: client.isActive
+                      ? `linear-gradient(135deg, ${C.coralStart}, ${C.coralEnd})`
+                      : C.border,
                     color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center",
                     fontWeight: 700, fontSize: 15, flexShrink: 0,
                   }}>
                     {initials}
                   </div>
+                </Link>
 
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Info — clickable */}
+                <Link href={`/coach/clients/${client.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <p style={{ fontSize: 14, fontWeight: 700, margin: 0, color: C.ink, letterSpacing: "-0.01em" }}>
                       {client.firstName} {client.lastName}
                     </p>
-                    <p style={{ fontSize: 11.5, color: C.inkMute, margin: "1px 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {client.clientProfile?.objective6months ?? client.email}
-                    </p>
-                    {/* Progress bar */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ flex: 1, height: 4, background: C.borderSoft, borderRadius: 2, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${progressPct}%`, background: progressPct >= 80 ? C.greenDeep : `linear-gradient(90deg, ${C.coralStart}, ${C.coralEnd})`, borderRadius: 2 }} />
-                      </div>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: C.inkMute, flexShrink: 0 }}>{progressPct}%</span>
-                    </div>
+                    {!client.isActive && (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: "#FEE2E2", color: "#DC2626" }}>
+                        Désactivé
+                      </span>
+                    )}
                   </div>
+                  <p style={{ fontSize: 11.5, color: C.inkMute, margin: "1px 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {client.clientProfile?.objective6months ?? client.email}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, height: 4, background: C.borderSoft, borderRadius: 2, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${progressPct}%`, background: progressPct >= 80 ? C.greenDeep : `linear-gradient(90deg, ${C.coralStart}, ${C.coralEnd})`, borderRadius: 2 }} />
+                    </div>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: C.inkMute, flexShrink: 0 }}>{progressPct}%</span>
+                  </div>
+                </Link>
 
-                  {/* Arrow */}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.inkMute} strokeWidth="2" strokeLinecap="round">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </div>
-              </Link>
+                {/* Actions */}
+                <ClientActions clientId={client.id} isActive={client.isActive} />
+              </div>
             );
           })}
         </div>
