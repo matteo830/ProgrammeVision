@@ -9,8 +9,16 @@ export async function GET() {
   const docs = await prisma.clientDocument.findMany({
     where: { userId: session.user.id },
     include: {
-      module: {
-        include: { course: { select: { id: true, title: true, order: true } } },
+      template: {
+        include: {
+          module: {
+            select: {
+              id: true,
+              title: true,
+              course: { select: { id: true, title: true, order: true } },
+            },
+          },
+        },
       },
     },
     orderBy: { createdAt: "asc" },

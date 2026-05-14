@@ -347,17 +347,27 @@ enum LessonStatus {
 }
 
 model CourseModule {
-  id              String          @id @default(cuid())
-  courseId        String
-  course          GhlCourse       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  title           String
-  description     String?
-  templateDriveId String?
-  order           Int             @default(0)
-  lessons         Lesson[]
-  clientDocs      ClientDocument[]
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id          String           @id @default(cuid())
+  courseId    String
+  course      GhlCourse        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  order       Int              @default(0)
+  lessons     Lesson[]
+  templates   ModuleTemplate[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model ModuleTemplate {
+  id          String           @id @default(cuid())
+  moduleId    String
+  module      CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  driveFileId String
+  order       Int              @default(0)
+  clientDocs  ClientDocument[]
+  createdAt   DateTime         @default(now())
 }
 
 model Lesson {
@@ -383,16 +393,16 @@ model LessonProgress {
 }
 
 model ClientDocument {
-  id          String       @id @default(cuid())
+  id          String         @id @default(cuid())
   userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  moduleId    String
-  module      CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId  String
+  template    ModuleTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   driveFileId String
   driveUrl    String
-  createdAt   DateTime     @default(now())
+  createdAt   DateTime       @default(now())
 
-  @@unique([userId, moduleId])
+  @@unique([userId, templateId])
 }
 
 model AuditSectionComment {

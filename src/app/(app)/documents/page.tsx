@@ -10,10 +10,15 @@ export default async function DocumentsPage() {
   const docs = await prisma.clientDocument.findMany({
     where: { userId: session.user.id },
     include: {
-      module: {
-        select: {
-          id: true, title: true,
-          course: { select: { id: true, title: true, order: true } },
+      template: {
+        include: {
+          module: {
+            select: {
+              id: true,
+              title: true,
+              course: { select: { id: true, title: true, order: true } },
+            },
+          },
         },
       },
     },
@@ -23,7 +28,7 @@ export default async function DocumentsPage() {
   // Group by course
   const byCourse: Record<string, { courseTitle: string; courseOrder: number; docs: typeof docs }> = {};
   for (const doc of docs) {
-    const { id, title, order } = doc.module.course;
+    const { id, title, order } = doc.template.module.course;
     if (!byCourse[id]) byCourse[id] = { courseTitle: title, courseOrder: order, docs: [] };
     byCourse[id].docs.push(doc);
   }

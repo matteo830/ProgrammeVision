@@ -12,7 +12,10 @@ export default async function AdminFormationsPage() {
     include: {
       modules: {
         orderBy: { order: "asc" },
-        include: { lessons: { orderBy: { order: "asc" } } },
+        include: {
+            lessons: { orderBy: { order: "asc" } },
+            templates: { orderBy: { order: "asc" } },
+          },
       },
     },
   });
