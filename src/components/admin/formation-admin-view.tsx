@@ -29,6 +29,18 @@ const input: CSSProperties = {
   fontSize: 13, fontFamily: "inherit", color: C.ink, background: C.cream, boxSizing: "border-box",
 };
 
+const arrowBtn = (disabled: boolean): CSSProperties => ({
+  border: "none", background: "none", cursor: disabled ? "default" : "pointer",
+  padding: "2px 5px", borderRadius: 6, fontSize: 13, lineHeight: 1,
+  color: disabled ? C.border : C.inkMute, fontFamily: "inherit",
+});
+
+function swap<T>(arr: T[], i: number, j: number): T[] {
+  const next = [...arr];
+  [next[i], next[j]] = [next[j], next[i]];
+  return next;
+}
+
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 12 }}>
@@ -61,7 +73,13 @@ function TemplateRow({ tpl, courseId, moduleId, onDelete }: { tpl: Template; cou
 }
 
 // ── Lesson row ────────────────────────────────────────────────────────────────
-function LessonRow({ lesson, courseId, moduleId, onDelete }: { lesson: Lesson; courseId: string; moduleId: string; onDelete: (id: string) => void }) {
+function LessonRow({
+  lesson, courseId, moduleId, isFirst, isLast, onDelete, onMoveUp, onMoveDown,
+}: {
+  lesson: Lesson; courseId: string; moduleId: string;
+  isFirst: boolean; isLast: boolean;
+  onDelete: (id: string) => void; onMoveUp: () => void; onMoveDown: () => void;
+}) {
   async function del() {
     if (!confirm("Supprimer cette leçon ?")) return;
     await fetch(`/api/admin/formations/${courseId}/modules/${moduleId}/lessons`, {
@@ -70,7 +88,11 @@ function LessonRow({ lesson, courseId, moduleId, onDelete }: { lesson: Lesson; c
     onDelete(lesson.id);
   }
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: `1px solid ${C.borderSoft}` }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: `1px solid ${C.borderSoft}` }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <button onClick={onMoveUp} disabled={isFirst} style={arrowBtn(isFirst)} title="Monter">▲</button>
+        <button onClick={onMoveDown} disabled={isLast} style={arrowBtn(isLast)} title="Descendre">▼</button>
+      </div>
       <span style={{ fontSize: 11, color: C.inkMute, width: 18, textAlign: "center" }}>{lesson.order + 1}</span>
       <span style={{ flex: 1, fontSize: 13, color: C.ink }}>{lesson.title}</span>
       <button onClick={del} style={btn("danger", { padding: "4px 10px", fontSize: 11 })}>✕</button>
@@ -79,7 +101,13 @@ function LessonRow({ lesson, courseId, moduleId, onDelete }: { lesson: Lesson; c
 }
 
 // ── Module card ───────────────────────────────────────────────────────────────
-function ModuleCard({ mod, courseId, onUpdate, onDelete }: { mod: Module; courseId: string; onUpdate: (m: Module) => void; onDelete: (id: string) => void }) {
+function ModuleCard({
+  mod, courseId, isFirst, isLast, onUpdate, onDelete, onMoveUp, onMoveDown,
+}: {
+  mod: Module; courseId: string; isFirst: boolean; isLast: boolean;
+  onUpdate: (m: Module) => void; onDelete: (id: string) => void;
+  onMoveUp: () => void; onMoveDown: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ title: mod.title, description: mod.description ?? "" });
@@ -133,10 +161,30 @@ function ModuleCard({ mod, courseId, onUpdate, onDelete }: { mod: Module; course
     onDelete(mod.id);
   }
 
+  async function reorderLessons(next: Lesson[]) {
+    setLessons(next);
+    await fetch(`/api/admin/formations/${courseId}/modules/${mod.id}/lessons/reorder`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: next.map((l) => l.id) }),
+    });
+  }
+
+  function moveLessonUp(i: number) {
+    reorderLessons(swap(lessons, i, i - 1).map((l, idx) => ({ ...l, order: idx })));
+  }
+  function moveLessonDown(i: number) {
+    reorderLessons(swap(lessons, i, i + 1).map((l, idx) => ({ ...l, order: idx })));
+  }
+
   return (
     <div style={{ background: C.cream, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 10 }}>
       {/* Module header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
+        {/* Up/down for module */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <button onClick={onMoveUp} disabled={isFirst} style={arrowBtn(isFirst)} title="Monter le module">▲</button>
+          <button onClick={onMoveDown} disabled={isLast} style={arrowBtn(isLast)} title="Descendre le module">▼</button>
+        </div>
         <button onClick={() => setOpen((o) => !o)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0, fontFamily: "inherit" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{mod.title}</span>
           <span style={{ fontSize: 12, color: C.inkMute, marginLeft: 8 }}>{lessons.length} leçon{lessons.length !== 1 ? "s" : ""}</span>
@@ -208,8 +256,13 @@ function ModuleCard({ mod, courseId, onUpdate, onDelete }: { mod: Module; course
           <div style={{ marginBottom: 10 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: C.inkMute, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 8px" }}>Leçons</p>
             {lessons.length === 0 && <p style={{ fontSize: 12, color: C.inkMute, fontStyle: "italic" }}>Aucune leçon</p>}
-            {lessons.map((l) => (
-              <LessonRow key={l.id} lesson={l} courseId={courseId} moduleId={mod.id} onDelete={(id) => setLessons((p) => p.filter((x) => x.id !== id))} />
+            {lessons.map((l, i) => (
+              <LessonRow key={l.id} lesson={l} courseId={courseId} moduleId={mod.id}
+                isFirst={i === 0} isLast={i === lessons.length - 1}
+                onDelete={(id) => setLessons((p) => p.filter((x) => x.id !== id))}
+                onMoveUp={() => moveLessonUp(i)}
+                onMoveDown={() => moveLessonDown(i)}
+              />
             ))}
           </div>
 
@@ -226,7 +279,13 @@ function ModuleCard({ mod, courseId, onUpdate, onDelete }: { mod: Module; course
 }
 
 // ── Course card ───────────────────────────────────────────────────────────────
-function CourseCard({ course, onUpdate, onDelete }: { course: Course; onUpdate: (c: Course) => void; onDelete: (id: string) => void }) {
+function CourseCard({
+  course, isFirst, isLast, onUpdate, onDelete, onMoveUp, onMoveDown,
+}: {
+  course: Course; isFirst: boolean; isLast: boolean;
+  onUpdate: (c: Course) => void; onDelete: (id: string) => void;
+  onMoveUp: () => void; onMoveDown: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ title: course.title, description: course.description ?? "", imageUrl: course.imageUrl ?? "", accessUrl: course.accessUrl ?? "" });
@@ -266,9 +325,29 @@ function CourseCard({ course, onUpdate, onDelete }: { course: Course; onUpdate: 
     onDelete(course.id);
   }
 
+  async function reorderModules(next: Module[]) {
+    setModules(next);
+    await fetch(`/api/admin/formations/${course.id}/modules/reorder`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: next.map((m) => m.id) }),
+    });
+  }
+
+  function moveModuleUp(i: number) {
+    reorderModules(swap(modules, i, i - 1).map((m, idx) => ({ ...m, order: idx })));
+  }
+  function moveModuleDown(i: number) {
+    reorderModules(swap(modules, i, i + 1).map((m, idx) => ({ ...m, order: idx })));
+  }
+
   return (
     <div style={{ background: C.white, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 20px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 20px" }}>
+        {/* Up/down for course */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <button onClick={onMoveUp} disabled={isFirst} style={arrowBtn(isFirst)} title="Monter le cours">▲</button>
+          <button onClick={onMoveDown} disabled={isLast} style={arrowBtn(isLast)} title="Descendre le cours">▼</button>
+        </div>
         <div style={{ width: 48, height: 48, borderRadius: 10, background: C.borderSoft, flexShrink: 0, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {course.imageUrl
             // eslint-disable-next-line @next/next/no-img-element
@@ -302,10 +381,13 @@ function CourseCard({ course, onUpdate, onDelete }: { course: Course; onUpdate: 
           <p style={{ fontSize: 11, fontWeight: 700, color: C.inkMute, textTransform: "uppercase", letterSpacing: "0.08em", margin: "0 0 12px" }}>
             Modules ({modules.length})
           </p>
-          {modules.map((m) => (
+          {modules.map((m, i) => (
             <ModuleCard key={m.id} mod={m} courseId={course.id}
+              isFirst={i === 0} isLast={i === modules.length - 1}
               onUpdate={(updated) => setModules((p) => p.map((x) => x.id === updated.id ? updated : x))}
               onDelete={(id) => setModules((p) => p.filter((x) => x.id !== id))}
+              onMoveUp={() => moveModuleUp(i)}
+              onMoveDown={() => moveModuleDown(i)}
             />
           ))}
 
@@ -353,6 +435,21 @@ export function FormationAdminView({ initialCourses }: { initialCourses: Course[
     setSaving(false);
   }
 
+  async function reorderCourses(next: Course[]) {
+    setCourses(next);
+    await fetch("/api/admin/formations/reorder", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: next.map((c) => c.id) }),
+    });
+  }
+
+  function moveCourseUp(i: number) {
+    reorderCourses(swap(courses, i, i - 1).map((c, idx) => ({ ...c, order: idx })));
+  }
+  function moveCourseDown(i: number) {
+    reorderCourses(swap(courses, i, i + 1).map((c, idx) => ({ ...c, order: idx })));
+  }
+
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "28px 16px 80px", fontFamily: "'Inter', sans-serif", color: C.ink }}>
       <div style={{ marginBottom: 28 }}>
@@ -392,10 +489,13 @@ export function FormationAdminView({ initialCourses }: { initialCourses: Course[
         </div>
       )}
 
-      {courses.map((c) => (
+      {courses.map((c, i) => (
         <CourseCard key={c.id} course={c}
+          isFirst={i === 0} isLast={i === courses.length - 1}
           onUpdate={(updated) => setCourses((p) => p.map((x) => x.id === updated.id ? updated : x))}
           onDelete={(id) => setCourses((p) => p.filter((x) => x.id !== id))}
+          onMoveUp={() => moveCourseUp(i)}
+          onMoveDown={() => moveCourseDown(i)}
         />
       ))}
     </div>
