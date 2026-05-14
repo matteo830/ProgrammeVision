@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useState } from "react";
 
 const C = {
@@ -13,7 +14,7 @@ interface Lesson { id: string; title: string; order: number }
 interface Module { id: string; title: string; description: string | null; templateDriveId: string | null; order: number; lessons: Lesson[] }
 interface Course { id: string; title: string; description: string | null; imageUrl: string | null; accessUrl: string | null; order: number; modules: Module[] }
 
-const btn = (variant: "primary" | "secondary" | "danger" | "ghost", extra?: React.CSSProperties): React.CSSProperties => ({
+const btn = (variant: "primary" | "secondary" | "danger" | "ghost", extra?: CSSProperties): CSSProperties => ({
   border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "7px 14px",
   ...(variant === "primary" && { background: `linear-gradient(135deg, ${C.coralStart}, ${C.coralEnd})`, color: C.white }),
   ...(variant === "secondary" && { background: C.greenSoft, color: C.greenDeep, border: `1px solid ${C.greenAccent}40` }),
@@ -22,7 +23,7 @@ const btn = (variant: "primary" | "secondary" | "danger" | "ghost", extra?: Reac
   ...extra,
 });
 
-const input: React.CSSProperties = {
+const input: CSSProperties = {
   width: "100%", padding: "9px 12px", borderRadius: 9, border: `1px solid ${C.border}`,
   fontSize: 13, fontFamily: "inherit", color: C.ink, background: C.cream, boxSizing: "border-box",
 };
