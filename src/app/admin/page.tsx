@@ -9,7 +9,7 @@ export default async function AdminPage() {
 
   const [coaches, clients, inactive] = await Promise.all([
     prisma.user.findMany({
-      where: { role: "COACH", isActive: true },
+      where: { role: { in: ["COACH", "ADMIN"] }, isActive: true },
       orderBy: { createdAt: "desc" },
       omit: { password: true },
     }),

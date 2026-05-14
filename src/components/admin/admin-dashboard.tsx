@@ -12,6 +12,7 @@ type User = {
   isActive: boolean;
   avatarUrl: string | null;
   createdAt: Date;
+  ghlCalendarSlug: string | null;
 };
 
 type ClientWithStats = User & {
@@ -60,7 +61,7 @@ export function AdminDashboard({ coaches, clients, inactive, currentAdminId }: P
 
   const tabs: { key: Tab; label: string; count: number; icon: React.ReactNode }[] = [
     { key: "clients", label: "Clients", count: clients.length, icon: <Users className="w-4 h-4" /> },
-    { key: "coaches", label: "Coaches", count: coaches.length, icon: <UserCheck className="w-4 h-4" /> },
+    { key: "coaches", label: "Coaches & Admins", count: coaches.length, icon: <UserCheck className="w-4 h-4" /> },
     { key: "inactive", label: "Désactivés", count: inactive.length, icon: <UserX className="w-4 h-4" /> },
   ];
 

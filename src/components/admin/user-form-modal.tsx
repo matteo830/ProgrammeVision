@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 
-type User = { id: string; firstName: string; lastName: string; email: string; role: string };
+type User = { id: string; firstName: string; lastName: string; email: string; role: string; ghlCalendarSlug?: string | null };
 
 type Props = {
   user: User | null;
@@ -20,6 +20,7 @@ export function UserFormModal({ user, defaultRole, onClose, onSuccess }: Props) 
     password: "",
     role: user?.role ?? defaultRole,
     programStartDate: "",
+    ghlCalendarSlug: user?.ghlCalendarSlug ?? "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,8 +32,15 @@ export function UserFormModal({ user, defaultRole, onClose, onSuccess }: Props) 
 
     const url = isEdit ? `/api/admin/users/${user!.id}` : "/api/admin/users";
     const method = isEdit ? "PATCH" : "POST";
+    const isCoachOrAdmin = form.role === "COACH" || form.role === "ADMIN";
     const body = isEdit
-      ? { firstName: form.firstName, lastName: form.lastName, email: form.email, ...(form.password ? { password: form.password } : {}) }
+      ? {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          ...(form.password ? { password: form.password } : {}),
+          ...(isCoachOrAdmin ? { ghlCalendarSlug: form.ghlCalendarSlug } : {}),
+        }
       : form;
 
     const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -99,6 +107,21 @@ export function UserFormModal({ user, defaultRole, onClose, onSuccess }: Props) 
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de début du programme</label>
               <input type="date" value={form.programStartDate} onChange={e => setForm(f => ({ ...f, programStartDate: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+            </div>
+          )}
+
+          {(form.role === "COACH" || form.role === "ADMIN") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Calendrier GHL <span className="text-gray-400 font-normal">(code iframe ou URL)</span>
+              </label>
+              <textarea
+                value={form.ghlCalendarSlug}
+                onChange={e => setForm(f => ({ ...f, ghlCalendarSlug: e.target.value }))}
+                placeholder={`<iframe src="https://api.leadconnectorhq.com/widget/booking/..." ...></iframe>`}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono resize-none"
+              />
             </div>
           )}
 

@@ -18,7 +18,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { firstName, lastName, email, password, isActive } = body;
+  const { firstName, lastName, email, password, isActive, ghlCalendarSlug } = body;
 
   const data: Record<string, unknown> = {};
   if (firstName !== undefined) data.firstName = firstName;
@@ -26,6 +26,11 @@ export async function PATCH(
   if (email !== undefined) data.email = email;
   if (isActive !== undefined) data.isActive = isActive;
   if (password) data.password = await bcrypt.hash(password, 12);
+  if (ghlCalendarSlug !== undefined) {
+    const raw: string = ghlCalendarSlug ?? "";
+    const match = raw.match(/widget\/booking\/([A-Za-z0-9]+)/);
+    data.ghlCalendarSlug = match ? match[1] : raw || null;
+  }
 
   // Empêcher de se désactiver soi-même
   if (isActive === false && id === session.user.id) {
