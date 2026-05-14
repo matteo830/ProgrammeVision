@@ -5,7 +5,7 @@ import { ModulesManagerView } from "@/components/coach/modules-manager-view";
 
 export default async function ModulesPage() {
   const session = await auth();
-  if (!session?.user || (session.user.role !== "COACH" && session.user.role !== "ADMIN")) redirect("/dashboard");
+  if (!session?.user || session.user.role !== "ADMIN") redirect("/dashboard");
 
   const phases = await prisma.phase.findMany({
     orderBy: { order: "asc" },

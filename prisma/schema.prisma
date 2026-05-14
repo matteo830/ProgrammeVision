@@ -322,6 +322,19 @@ model AuditResponse {
   @@unique([clientId, type])
 }
 
+model GhlCourse {
+  id          String   @id @default(cuid())
+  ghlId       String   @unique
+  title       String
+  description String?
+  imageUrl    String?
+  accessUrl   String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  syncedAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model AuditSectionComment {
   id              String        @id @default(cuid())
   auditResponseId String

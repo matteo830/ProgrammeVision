@@ -18,7 +18,6 @@ const clientNav = [
 const coachNav = [
   { href: "/coach/clients", emoji: "👥", label: "Mes clients", icon: Users },
   { href: "/coach/coaches", emoji: "🎓", label: "Coaches", icon: Users },
-  { href: "/coach/modules", emoji: "⚙️", label: "Modules", icon: Settings },
   { href: "/coach/settings", emoji: "🔧", label: "Paramètres", icon: Settings },
 ];
 
