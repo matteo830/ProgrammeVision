@@ -8,6 +8,7 @@ import { signOut } from "next-auth/react";
 const clientNav = [
   { href: "/dashboard", emoji: "🏠", label: "Accueil", icon: Home },
   { href: "/formation", emoji: "📚", label: "Formation", icon: BookOpen },
+  { href: "/documents", emoji: "📄", label: "Mes documents", icon: FileText },
   { href: "/coaching", emoji: "💬", label: "Coaching", icon: MessageCircle },
   { href: "/calendrier", emoji: "📅", label: "Calendrier", icon: Calendar },
   { href: "/questions", emoji: "❓", label: "Mes questions", icon: FileText },

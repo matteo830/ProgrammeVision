@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { copyTemplate } from "@/lib/google-drive";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
@@ -46,6 +47,28 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+
+    // Copy Drive templates for all modules that have one
+    const modules = await prisma.courseModule.findMany({
+      where: { templateDriveId: { not: null } },
+      select: { id: true, title: true, templateDriveId: true },
+    });
+
+    await Promise.allSettled(
+      modules.map(async (mod) => {
+        try {
+          const { driveFileId, driveUrl } = await copyTemplate(
+            mod.templateDriveId!,
+            `${mod.title} — ${firstName} ${lastName}`
+          );
+          await prisma.clientDocument.create({
+            data: { userId: user.id, moduleId: mod.id, driveFileId, driveUrl },
+          });
+        } catch {
+          console.error(`Drive copy failed for module ${mod.id}`);
+        }
+      })
+    );
 
     return NextResponse.json({
       success: true,

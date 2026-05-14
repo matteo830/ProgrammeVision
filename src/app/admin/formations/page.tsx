@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { FormationSyncView } from "@/components/admin/formation-sync-view";
+import { FormationAdminView } from "@/components/admin/formation-admin-view";
 
 export default async function AdminFormationsPage() {
   const session = await auth();
@@ -9,17 +9,13 @@ export default async function AdminFormationsPage() {
 
   const courses = await prisma.ghlCourse.findMany({
     orderBy: { order: "asc" },
+    include: {
+      modules: {
+        orderBy: { order: "asc" },
+        include: { lessons: { orderBy: { order: "asc" } } },
+      },
+    },
   });
 
-  const lastSync = courses[0]?.syncedAt?.toISOString() ?? null;
-
-  return (
-    <FormationSyncView
-      initialCourses={courses.map((c) => ({
-        ...c,
-        syncedAt: c.syncedAt.toISOString(),
-      }))}
-      lastSync={lastSync}
-    />
-  );
+  return <FormationAdminView initialCourses={courses} />;
 }

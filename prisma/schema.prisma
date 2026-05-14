@@ -91,6 +91,10 @@ model User {
   // Relations partagées
   clientAssignments CoachClientAssignment[] @relation("ClientAssignments")
   clientSessions    CoachingSession[]       @relation("ClientSessions")
+
+  // Formation
+  lessonProgresses  LessonProgress[]
+  clientDocuments   ClientDocument[]
 }
 
 model ClientProfile {
@@ -323,16 +327,72 @@ model AuditResponse {
 }
 
 model GhlCourse {
-  id          String   @id @default(cuid())
-  ghlId       String   @unique
+  id          String         @id @default(cuid())
+  ghlId       String         @unique
   title       String
   description String?
   imageUrl    String?
   accessUrl   String?
-  order       Int      @default(0)
-  isActive    Boolean  @default(true)
-  syncedAt    DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  order       Int            @default(0)
+  isActive    Boolean        @default(true)
+  syncedAt    DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  modules     CourseModule[]
+}
+
+enum LessonStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+}
+
+model CourseModule {
+  id              String          @id @default(cuid())
+  courseId        String
+  course          GhlCourse       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  templateDriveId String?
+  order           Int             @default(0)
+  lessons         Lesson[]
+  clientDocs      ClientDocument[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Lesson {
+  id         String           @id @default(cuid())
+  moduleId   String
+  module     CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title      String
+  order      Int              @default(0)
+  progresses LessonProgress[]
+  createdAt  DateTime         @default(now())
+}
+
+model LessonProgress {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId  String
+  lesson    Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  status    LessonStatus @default(NOT_STARTED)
+  updatedAt DateTime     @updatedAt
+
+  @@unique([userId, lessonId])
+}
+
+model ClientDocument {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleId    String
+  module      CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  driveFileId String
+  driveUrl    String
+  createdAt   DateTime     @default(now())
+
+  @@unique([userId, moduleId])
 }
 
 model AuditSectionComment {
