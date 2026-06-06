@@ -48,7 +48,7 @@ export async function PATCH(
 
   const updated = await prisma.auditResponse.update({
     where: { id },
-    data: { responses },
+    data: { responses: responses as object },
   });
 
   return NextResponse.json(updated);
