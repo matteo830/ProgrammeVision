@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Vision · Audit d'onboarding</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#F5F4F0;font-family:'Inter',sans-serif}*{box-sizing:border-box}textarea:focus,input:focus{outline:none;border-color:#E8527D}</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="audit-data.jsx"></script>
+<script type="text/babel" src="audit-screens.jsx"></script>
+<script type="text/babel" src="audit-evolution.jsx"></script>
+<script type="text/babel" data-presets="react">
+const PhoneFrame = ({children}) => (
+  <window.IOSDevice time="9:41">
+    <div style={{width:"100%",height:"100%",overflow:"auto",background:window.AUDIT_TOKENS.cream}}>
+      <div style={{height: 44}}/>
+      {children}
+    </div>
+  </window.IOSDevice>
+);
+const App = () => (
+  <window.DesignCanvas title="Vision · Audit d'onboarding" subtitle="7 sections (repris du Tally) · 3 passages (départ / mi-parcours / fin) · comparaison de l'évolution">
+    <window.DCSection id="audit" title="Audit VISION — 3 écrans">
+      <window.DCArtboard id="hub" label="Hub — les 3 passages de l'audit" width={400} height={920}>
+        <PhoneFrame><window.AuditHub/></PhoneFrame>
+      </window.DCArtboard>
+      <window.DCArtboard id="wizard" label="Wizard — remplissage section par section (Section 1)" width={400} height={1250}>
+        <PhoneFrame><window.AuditWizard/></PhoneFrame>
+      </window.DCArtboard>
+      <window.DCArtboard id="evolution" label="Évolution — comparaison départ / mi-parcours / fin" width={400} height={1450}>
+        <PhoneFrame><window.AuditEvolution/></PhoneFrame>
+      </window.DCArtboard>
+    </window.DCSection>
+  </window.DesignCanvas>
+);
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
