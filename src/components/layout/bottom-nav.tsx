@@ -2,49 +2,65 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, Plus, MessageCircle, User } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Home, BookOpen, Users, Calendar, User } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", icon: Home, label: "Accueil" },
-  { href: "/calendrier", icon: Calendar, label: "Calendrier" },
-  { href: "/dashboard", icon: Plus, label: "", isAction: true },
-  { href: "/questions", icon: MessageCircle, label: "Messages" },
-  { href: "/profil", icon: User, label: "Profil" },
+  { href: "/dashboard",   icon: Home,     label: "Accueil"    },
+  { href: "/formation",   icon: BookOpen,  label: "Formation"  },
+  { href: "/coaching",    icon: Users,     label: "Coaching"   },
+  { href: "/calendrier",  icon: Calendar,  label: "Agenda"     },
+  { href: "/profil",      icon: User,      label: "Profil"     },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 md:hidden">
-      <div className="flex items-center justify-around px-2 py-2 max-w-lg mx-auto">
-        {navItems.map((item, i) => {
-          if (item.isAction) {
-            return (
-              <Link
-                key={i}
-                href="/dashboard"
-                className="flex items-center justify-center w-12 h-12 bg-green-800 rounded-full shadow-lg -mt-6 transition-transform active:scale-95"
-              >
-                <Plus className="w-6 h-6 text-white" />
-              </Link>
-            );
-          }
-
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
+      style={{
+        background: "rgba(255,255,255,0.88)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        borderTop: "1px solid var(--border-soft)",
+      }}
+    >
+      <div className="flex items-center justify-around px-2 py-1.5 max-w-[640px] mx-auto">
+        {navItems.map((item) => {
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
             <Link
-              key={i}
+              key={item.href}
               href={item.href}
-              className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors",
-                isActive ? "text-green-800" : "text-gray-400"
-              )}
+              className="flex flex-col items-center gap-0.5 min-w-[44px] min-h-[44px] justify-center rounded-xl transition-colors"
             >
-              <item.icon className={cn("w-5 h-5", isActive && "stroke-[2.5]")} />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span
+                className="flex items-center justify-center w-9 h-7 rounded-lg transition-colors"
+                style={
+                  isActive
+                    ? { background: "var(--green-soft)" }
+                    : {}
+                }
+              >
+                <item.icon
+                  className="w-5 h-5"
+                  style={{
+                    color: isActive ? "var(--green-deep)" : "var(--ink-mute)",
+                    strokeWidth: isActive ? 2.5 : 2,
+                  }}
+                />
+              </span>
+              <span
+                className="text-[10px] font-semibold leading-none"
+                style={{
+                  color: isActive ? "var(--green-deep)" : "var(--ink-mute)",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}
