@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// GET /api/coach/audit/[id] — id = clientId : liste les audits d'un client
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ clientId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   if (!session?.user?.id || !["COACH", "ADMIN"].includes(session.user.role as string)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { clientId } = await params;
+  const { id: clientId } = await params;
 
   const audits = await prisma.auditResponse.findMany({
     where: { clientId },
