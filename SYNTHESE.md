@@ -1,16 +1,17 @@
 # Synthèse du projet Vision — Plateforme de coaching
 
-> Document de reprise de session. Dernière mise à jour : 13/05/2026.
+> Document de reprise de session. Dernière mise à jour : **07/06/2026**.
 
 ---
 
 ## 1. Contexte
 
-Application web de suivi de programme d'accompagnement entrepreneurial sur 6 mois (Méthode VISION). 15 clients actuels, objectif 100.
+Application web de suivi de programme d'accompagnement entrepreneurial sur 6 mois (Méthode VISION). 3 rôles : **CLIENT · COACH · ADMIN**.
 
-**Rôles** : CLIENT · COACH · ADMIN  
 **Stack** : Next.js 16.2.4 (App Router) · TypeScript · Tailwind CSS v4 · Prisma v5 (PostgreSQL) · NextAuth v5 beta  
-**Repo GitHub** : `matteo830/programmevision` — branche de dev : `claude/plan-web-app-project-7vZ8V`
+**Repo GitHub** : `matteo830/ProgrammeVision`  
+**Branche de dev** : `claude/plan-web-app-project-7vZ8V`  
+**URL prod** : `https://programme.methode-vision.com`
 
 ---
 
@@ -21,21 +22,22 @@ Application web de suivi de programme d'accompagnement entrepreneurial sur 6 moi
 | Serveur | Ubuntu 24.04 LTS — `46.224.86.181` (Hetzner) |
 | Hostname | `mindparachutes-n8n` |
 | Accès SSH | `ssh -i ~/.ssh/hetzner-n8n root@46.224.86.181` |
-| Domaine | `programme.methode-vision.com` (SSL Let's Encrypt via Caddy ✅) |
 | App path | `/opt/vision/` |
 | Docker network | `n8n_n8nnet` (partagé avec n8n et Caddy) |
 | Container app | `vision-app` (port 3000 interne) |
-| Container Caddy | `n8n-caddy-1` |
-| Base de données | PostgreSQL sur le container `postgres` — DB `vision` |
+| Base de données | PostgreSQL — container `postgres` — DB `vision` |
 
-### Fichiers serveur clés
+### Commandes de déploiement
 
-- `/opt/vision/.env` — variables d'environnement (NE PAS versionner)
-- `/opt/vision/docker-compose.yml` — orchestration
-- `/opt/vision/Dockerfile` — build non-standalone (inclut `node_modules` complet)
-- `/opt/n8n/Caddyfile` — reverse proxy (n8n + vision)
+```bash
+cd /opt/vision
+git pull origin claude/plan-web-app-project-7vZ8V
+docker compose build --no-cache && docker compose up -d
+# Si le schéma Prisma a changé :
+docker exec vision-app ./node_modules/.bin/prisma db push
+```
 
-### Variables d'environnement actuelles (`.env` sur le serveur)
+### Variables d'environnement (`.env` sur le serveur — ne pas versionner)
 
 ```
 DATABASE_URL="postgresql://n8n:****@postgres:5432/vision"
@@ -44,257 +46,206 @@ NEXTAUTH_URL="https://programme.methode-vision.com"
 GHL_WEBHOOK_SECRET="vision-ghl-secret-2024"
 ```
 
-### Variables d'env à ajouter au prochain sprint
+### Variables à ajouter (non configurées)
 
 ```
-RESEND_API_KEY=          # À créer sur resend.com (gratuit)
+RESEND_API_KEY=          # Pour reset de mot de passe par email
 RESEND_FROM="noreply@methode-vision.com"
-GOOGLE_CLIENT_ID=        # Google Cloud Console
-GOOGLE_CLIENT_SECRET=    # Google Cloud Console
-GHL_API_TOKEN=           # Private Integration GHL (régénérer après partage en chat)
-```
-
-### Commandes de déploiement
-
-```bash
-cd /opt/vision
-git pull origin claude/plan-web-app-project-7vZ8V
-docker compose build --no-cache && docker compose up -d
-# Migration base de données (si schema modifié) :
-docker exec vision-app ./node_modules/.bin/prisma db push
-# Re-seed (si nécessaire) :
-docker exec vision-app ./node_modules/.bin/prisma db seed
+GOOGLE_CLIENT_ID=        # Google OAuth
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALENDAR_API_KEY= # Google Agenda (lecture seule)
+NEXT_PUBLIC_GOOGLE_CALENDAR_ID=496c09...@group.calendar.google.com
+GHL_API_TOKEN=           # GHL Private Integration (régénérer)
 ```
 
 ---
 
-## 3. Architecture de l'application
+## 3. Architecture
 
-### Structure des routes
+### Routes applicatives
 
 ```
-/login                    — Page de connexion (tous rôles)
 /(app)/dashboard          — Dashboard client
-/(app)/formation          — Parcours / modules
-/(app)/audit              — Audit d'onboarding (À IMPLÉMENTER)
-/(app)/coaching           — Notes de coaching (client)
-/(app)/questions          — Q&A / tickets
-/(app)/calendrier         — Calendriers (Google collectif + GHL individuel)
+/(app)/formation          — Parcours Cours → Modules → Leçons
+/(app)/audit              — Hub des 3 bilans VISION          ✅ (sprint 2)
+/(app)/audit/[id]         — Wizard de remplissage            ✅ (sprint 2)
+/(app)/audit/evolution    — Comparaison des 3 passages       ✅ (sprint 2)
+/(app)/coaching           — Sessions & notes (côté client)
+/(app)/questions          — Q&A avec le coach
+/(app)/calendrier         — Calendrier GHL + Google
 /(app)/profil             — Profil utilisateur
-/coach/clients            — Liste clients (coach)
+/(app)/victoires          — Victoires & gratitudes
+/(app)/documents          — Templates Google Drive par cours
+/coach/clients            — Liste des clients (coach)
 /coach/clients/[id]       — Détail client (coach)
-/coach/modules            — Gestion vidéos/exercices (coach)
-/admin                    — Dashboard admin (À IMPLÉMENTER)
-/admin/setup              — Création premier admin (À IMPLÉMENTER)
-/reset-password           — Reset mot de passe via token email (À IMPLÉMENTER)
+/coach/coaches            — Liste coaches & admins
+/coach/modules            — Gestion contenu GHL
+/coach/settings           — Paramètres coach (calendrier GHL)
+/admin                    — Dashboard admin (coaches/clients/inactifs)
+/admin/setup              — Création premier admin (one-time)
+/login                    — Authentification
+/reset-password           — Reset mot de passe (token email)
 ```
 
-### Modèle de données (Prisma — `prisma/schema.prisma`)
+### API routes
 
-**Modèles existants** :
-- `User` — CLIENT / COACH / ADMIN — avec `firstName`, `lastName`, `email`, `password`, `role`, `avatarUrl`
-- `ClientProfile` — `programStartDate`, `programEndDate`, `objective6months`, `currentRevenue`, `targetRevenue`, `ghlBookingUrl`
-- `Phase` (4 phases : 0 à 3) → `Module` (23 modules au total)
-- `ModuleProgress` — progression par client/module, `videoWatched`, `exerciseDone`, `coachValidated`, `coachComment`
-- `CoachingNote` — visibilité `CLIENT_VISIBLE` ou `TEAM_ONLY`
-- `Question` + `QuestionReply` — système de tickets
-- `DailyAction`, `Gratitude`, `WeeklyVictory` — journal quotidien client
-- `Inspiration` — citations affichées sur le dashboard
-- `CoachClientAssignment` — assignation coach↔client (prévu, V2)
+```
+/api/auth/[...nextauth]            — NextAuth
+/api/client/audit                  — GET liste | POST créer DRAFT       ✅
+/api/client/audit/[id]             — GET | PATCH autosave               ✅
+/api/client/audit/[id]/submit      — POST soumettre                     ✅
+/api/client/audit/evolution        — GET agrégat comparaison            ✅
+/api/coach/audit/[id]              — GET audits d'un client             ✅
+/api/coach/audit/[id]/comment      — POST ajouter commentaire section   ✅
+/api/coach/audit/[id]/reopen       — POST rouvrir audit                 ✅
+/api/admin/users                   — GET liste | POST créer compte
+/api/admin/users/[id]              — PATCH modifier (nom, email, mdp, ghlCalendarSlug, isActive)
+/api/coach/settings                — PATCH calendrier GHL coach
+/api/coach/settings/me             — GET slug GHL actuel
+/api/client/sessions               — GET sessions coaching
+/api/client/progress               — GET progression formation
+/api/client/lesson-progress        — PATCH statut leçon
+/api/client/victories              — GET | POST victoires/gratitudes
+/api/client/actions                — GET | POST | PATCH actions quotidiennes
+/api/client/documents              — GET documents Google Drive
+/api/webhook/ghl                   — POST création compte client depuis GHL
+```
 
-**À AJOUTER au prochain sprint** :
-- Champ `isActive Boolean @default(true)` sur `User`
-- Modèle `PasswordResetToken` — `id`, `token`, `userId`, `expiresAt`, `usedAt`
-- Modèle `Account` — requis par NextAuth pour Google OAuth
-- Modèle `AuditResponse` — voir section 5.4 ci-dessous
-
-### Fichiers importants
+### Fichiers clés
 
 | Fichier | Rôle |
 |---|---|
-| `src/lib/auth.ts` | Config NextAuth — credentials provider, JWT, `trustHost: true` |
+| `src/lib/auth.ts` | NextAuth — credentials + Google OAuth, JWT, `trustHost: true` |
 | `src/lib/prisma.ts` | Instance Prisma singleton |
-| `src/lib/progress.ts` | `getClientProgress(userId)` — calcul progression |
-| `src/middleware.ts` | Protection routes (tout sauf `/login`, `/api/webhook/ghl`, `/api/auth`) |
-| `src/types/next-auth.d.ts` | Extension types Session/JWT avec `id` et `role` |
-| `prisma/seed.ts` | 4 phases, 23 modules, 5 inspirations, compte coach démo |
+| `src/lib/audit-data.ts` | 7 sections, 45 questions exactes, 9 métriques, UNLOCK_WEEKS |
+| `src/middleware.ts` | Protection routes |
+| `prisma/schema.prisma` | Schéma complet (voir section 4) |
+| `prisma/seed.ts` | Données de démo |
+| `docs/design/DESIGN-SPECS.md` | Document maître design — **lire en premier** |
+| `docs/design/DESIGN-TOKENS.md` | Couleurs, typo, formes |
+| `docs/design/AUDIT-SPECS.md` | Specs Audit (référence d'implémentation) |
+| `docs/design/reference/audit-data.jsx` | Source des questions (prototype JS) |
 
-### Compte de démo
+---
 
-| Rôle | Email | Mot de passe |
+## 4. Modèle de données (état actuel)
+
+Modèles Prisma en production :
+
+- **`User`** — `id, email, password, firstName, lastName, role, avatarUrl, phone, ghlCalendarSlug, isActive`
+- **`ClientProfile`** — `programStartDate, programEndDate, objective6months, currentRevenue, targetRevenue, ghlBookingUrl`
+- **`CoachClientAssignment`** — assignation coach ↔ client
+- **`GhlCourse → CourseModule → Lesson`** — structure de formation GHL
+- **`LessonProgress`** — statut NOT_STARTED / IN_PROGRESS / DONE par leçon
+- **`ModuleTemplate → ClientDocument`** — templates Google Drive
+- **`CoachingSession → SessionAction, CoachingNote`** — sessions coaching
+- **`Question → QuestionReply`** — Q&A
+- **`DailyAction, Gratitude, WeeklyVictory`** — journal client
+- **`Inspiration`** — citations dashboard
+- **`AuditResponse`** — `clientId, type (INITIAL/MID/FINAL), status (DRAFT/SUBMITTED), responses (Json), submittedAt`
+- **`AuditSectionComment`** — `auditResponseId, coachId, section (1-7), content`
+- **`PasswordResetToken`** — tokens reset email
+- **`Account`** — OAuth accounts (NextAuth)
+
+---
+
+## 5. Design system
+
+Direction validée : **corail vibrant + vert sapin** (palette logo VISION).
+
+Tokens CSS définis dans `src/app/globals.css` :
+- `--green-deep: #0E3D34` · `--green-soft: #E8EFEC` · `--green-accent: #3FA88E`
+- `--gold: #D4A047` · `--gold-soft: #FBF1D8` · `--gold-light: #E8C56F`
+- `--coral-start: #FF8A6B` · `--coral-end: #E8527D`
+- `--cream: #FAF6EB` · `--ink: #1A1714` · `--ink-mute: #9A9080` · `--border: #E8DFC8`
+
+Classes utilitaires : `.gradient-coral` · `.gradient-green`  
+Motif récurrent : hero vert sapin + montagne SVG (opacity 0.25) + eyebrow or
+
+**Tous les écrans sont au design system** (sprint 1 + 2).
+
+---
+
+## 6. Ce qui a été réalisé
+
+### Sprint 1 (avant le 07/06)
+- ✅ Auth email/mdp + Google OAuth + reset mdp (Resend)
+- ✅ Dashboard client complet (objectif, formation, actions, gratitude, victoire)
+- ✅ Formation (GHL Cours → Modules → Leçons, progression)
+- ✅ Coaching (sessions, notes, actions, replay Fireflies)
+- ✅ Questions/tickets (client pose, coach répond)
+- ✅ Calendrier (Google collectif + GHL individuel)
+- ✅ Profil client
+- ✅ Victoires & gratitudes
+- ✅ Documents (templates Drive par cours)
+- ✅ Dashboard coach (liste clients, stats, filtres)
+- ✅ Détail client coach (3 onglets : Formation / Notes / Questions)
+- ✅ Gestion modules et contenu (coach)
+- ✅ Admin dashboard (onglets Coaches & Admins / Clients / Désactivés)
+- ✅ Admin setup (one-time, premier admin)
+- ✅ Webhook GHL création client automatique
+- ✅ Design system appliqué sur tous les écrans
+
+### Sprint 2 — session du 07/06/2026
+
+**1. Édition coaches & admins depuis l'admin**
+- Champ `ghlCalendarSlug` ajouté dans la modal d'édition pour COACH et ADMIN
+- API `PATCH /api/admin/users/[id]` gère désormais `ghlCalendarSlug` (parse iframe ou slug brut)
+- Les admins actifs apparaissent maintenant dans l'onglet "Coaches & Admins" (auparavant invisibles)
+
+**2. Docs design intégrées au repo** (`docs/design/`)
+- `DESIGN-SPECS.md`, `DESIGN-TOKENS.md`, `AUDIT-SPECS.md`, `SCREENS.md`, `README.md`
+- `reference/` : `Audit.html`, `audit-data.jsx`, `audit-screens.jsx`, `audit-evolution.jsx`, `design-canvas.jsx`, `ios-frame.jsx`
+
+**3. Bottom-nav mobile refaite**
+- 5 onglets : Accueil · Formation · Coaching · Agenda · Profil (routes correctes)
+- Fond blanc translucide + `backdrop-filter: blur`
+- Actif : vert sapin sur pastille `--green-soft`
+- Suppression du bouton "+" central
+
+**4. Audit d'onboarding — implémentation complète**
+- `src/lib/audit-data.ts` : 7 sections, 45 questions (texte exact Tally), 9 métriques
+- 7 routes API (client + coach)
+- 3 composants : `AuditHub`, `AuditWizard`, `AuditEvolution`
+- 3 pages : `/audit`, `/audit/[id]`, `/audit/evolution`
+- Autosave debounced 800ms, mode lecture seule avec retours coach, logique de déblocage par semaine
+
+---
+
+## 7. Points d'attention techniques
+
+- **Prisma v5.22.0** — NE PAS upgrader (breaking changes v6/v7)
+- **`previewFeatures = ["omitApi"]`** dans schema.prisma — requis pour `omit: { password: true }`
+- **`binaryTargets`** : `["native", "linux-musl-openssl-3.0.x"]` — Alpine Linux
+- **NextAuth** : `trustHost: true` obligatoire derrière Caddy
+- **Dockerfile** : mode non-standalone — ne pas activer `output: "standalone"`
+- **Migrations** : `prisma db push` (pas `migrate deploy`)
+- **Prisma CLI** : toujours `./node_modules/.bin/prisma` (pas `npx prisma` → télécharge v7)
+- **Champs Json Prisma** : caster en `as object` pour les updates (`responses as object`)
+- **Next.js 16** : les segments dynamiques au même niveau de route doivent avoir le même nom (`[id]` vs `[clientId]` → conflit)
+- **Middleware** : le fichier `middleware.ts` est déprécié au profit de `proxy` en Next.js 16
+
+---
+
+## 8. Ce qui reste à faire
+
+- [ ] **Fireflies** : afficher transcripts/résumés/actions depuis l'API Fireflies dans l'onglet client coach (V2)
+- [ ] **Google Agenda** : intégrer l'API Google Calendar (lecture seule) dans la section Calendrier — Calendar ID configuré
+- [ ] **GHL Booking import** : importer les réponses Tally existantes dans `AuditResponse` pour les clients déjà dans le programme
+- [ ] **Côté coach — vue Audit** : afficher les audits d'un client dans l'onglet Détail client + permettre les commentaires par section et la réouverture
+- [ ] **Côté admin** : voir et gérer les audits de tous les clients
+
+---
+
+## 9. Pour reprendre dans une nouvelle session
+
+Coller ce message en début de session Claude Code :
+
+> "Je reprends le projet Vision — plateforme de coaching Next.js déployée sur `programme.methode-vision.com` (Hetzner). Repo `matteo830/ProgrammeVision`, branche `claude/plan-web-app-project-7vZ8V`. Lis `SYNTHESE.md` à la racine du projet pour le contexte complet, et `docs/design/DESIGN-SPECS.md` pour la direction visuelle. [Décrire la tâche du jour]."
+
+### Comptes de test
+
+| Rôle | Email | Mdp |
 |---|---|---|
 | Coach | `coach@vision.fr` | `coach123` |
-
----
-
-## 4. Fonctionnalités V1 implémentées ✅
-
-- [x] Authentification email/mdp (NextAuth v5 JWT)
-- [x] Dashboard client (progression, objectif, actions quotidiennes, gratitude, victoire)
-- [x] Formation / parcours — progression phase par phase, modules verrouillés/déverrouillés
-- [x] Notes de coaching (client voit CLIENT_VISIBLE, coach voit tout)
-- [x] Questions/tickets (client pose, coach répond)
-- [x] Calendrier (Google collectif + GHL booking individuel)
-- [x] Profil client
-- [x] Dashboard coach — liste clients avec stats de progression
-- [x] Détail client coach — 3 onglets : Formation / Notes / Questions
-- [x] Gestion modules (coach définit videoUrl + exerciseUrl)
-- [x] Validation exercices par le coach (avec commentaire)
-- [x] Webhook GHL pour création automatique de comptes clients
-- [x] Création manuelle de client par le coach
-
----
-
-## 5. Prochain sprint — Fonctionnalités à implémenter
-
-### 5.1 Système Admin
-
-**Accès** :
-- URL : `/admin` (protégée par login admin)
-- Page setup : `/admin/setup` — accessible une seule fois, tant qu'aucun admin n'existe en base
-
-**Fonctionnalités admin** :
-- Tableau de bord avec onglets : Coaches | Clients | Désactivés
-- Créer un coach, un client, un autre admin
-- Modifier les infos d'un coach ou d'un client (nom, email, mdp)
-- Désactiver / réactiver un compte (soft delete via `isActive`)
-- Voir la progression détaillée d'un client (mêmes droits que coach)
-- Faire les actions coach (valider modules, notes, répondre aux questions)
-- À terme (V2) : assignation coach↔client via `CoachClientAssignment`
-
-**Comportement désactivation** :
-- Utilisateur désactivé → message au login : "Votre compte a été désactivé, contactez votre coach"
-- Les données sont conservées
-- L'admin voit les comptes désactivés avec badge "Inactif"
-
-### 5.2 Reset de mot de passe par email
-
-**Provider** : **Resend** (resend.com — gratuit jusqu'à 3000 emails/mois)  
-**Setup requis** :
-1. Créer compte sur resend.com
-2. Ajouter 2 enregistrements DNS dans OVH (SPF + DKIM pour `methode-vision.com`) — Claude guide pas à pas
-3. Récupérer la clé API → `RESEND_API_KEY` dans `.env`
-
-**Pourquoi pas MailerLite** : leur API est pour les campagnes/newsletters, pas pour le transactionnel. Leur token ne permet pas l'envoi d'emails arbitraires.  
-**Pourquoi pas GHL** : API conçue pour CRM, complexe pour du transactionnel pur.
-
-**Flow** :
-1. Lien "Mot de passe oublié" sur la page `/login`
-2. Lien "Changer mon mot de passe" dans le profil utilisateur
-3. Email envoyé avec lien tokenisé (`/reset-password?token=xxx`)
-4. Token stocké dans `PasswordResetToken` (expiration 1h, usage unique)
-
-### 5.3 Google OAuth
-
-**Pour** : clients, coaches ET admins  
-**Comportement** :
-- Utilisateur existant → connexion Google liée automatiquement par email
-- Email inconnu → refus : "Aucun compte n'existe pour cet email, contactez votre coach"
-- Bouton "Se connecter avec Google" sur `/login`
-
-**Setup requis (à faire ensemble)** :
-1. Google Cloud Console → nouveau projet
-2. Activer Google Identity API
-3. OAuth 2.0 Credentials → Web application
-4. Redirect URI : `https://programme.methode-vision.com/api/auth/callback/google`
-5. Récupérer `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`
-
-**Modifications code** :
-- `prisma/schema.prisma` : ajouter modèle `Account` (requis NextAuth OAuth)
-- `src/lib/auth.ts` : provider Google + logique liaison compte existant
-
-### 5.4 Audit d'onboarding (remplace Tally)
-
-**Concept** :
-- S'appelle "Audit" dans l'interface (pas "sondage")
-- Première étape obligatoire pour tout nouveau client
-- 3 types : `INITIAL` (début) · `MID` (mi-parcours) · `FINAL` (fin de programme)
-- Questions MID et FINAL à définir ultérieurement — le modèle est flexible
-- Statuts : `DRAFT` → `SUBMITTED` (coach peut remettre en DRAFT pour réouverture)
-- Le client remplit, le coach peut rouvrir mais c'est toujours le client qui répond
-- Coach peut commenter par section (7 sections)
-- Import manuel possible pour clients existants (copier/coller depuis Tally)
-
-**7 sections de l'audit INITIAL** :
-1. Où j'en suis aujourd'hui (1 texte libre + 7 sliders 0-10 + 1 texte "pourquoi" + 1 texte "ce qui pèse")
-2. Mes objectifs et attentes (6 questions texte libre)
-3. Mes blocages actuels (4 questions texte libre)
-4. Mon business aujourd'hui (10 questions texte libre)
-5. Mon état personnel (3 textes + 1 slider 0-10 + 1 texte)
-6. Mon engagement (3 questions texte libre)
-7. Notre accompagnement (3 textes + 1 choix A/B + 1 slider 0-10 + 1 texte + email/téléphone)
-
-**Modèle de données** :
-```
-AuditResponse {
-  id, clientId, type (INITIAL/MID/FINAL)
-  status (DRAFT/SUBMITTED)
-  responses Json   // structure par section
-  createdAt, updatedAt, submittedAt
-}
-AuditSectionComment {
-  id, auditResponseId, coachId
-  section (1-7), content
-  createdAt, updatedAt
-}
-```
-
-### 5.5 Google Agenda (section Calendrier)
-
-**Agenda** : public, ID extrait de l'URL partagée  
-**Calendar ID** : `496c09db271a2acb70467e55d23fcb3ac3cbd9795cfa6a4dcadc7a4d55b52369@group.calendar.google.com`  
-**Implémentation** : API Google Calendar (lecture seule, clé API publique) ou iframe embed  
-**Affichage** : liste des prochains événements de groupe dans la section Calendrier
-
-**Variable d'env à ajouter** :
-```
-NEXT_PUBLIC_GOOGLE_CALENDAR_ID=496c09db271a2acb70467e55d23fcb3ac3cbd9795cfa6a4dcadc7a4d55b52369@group.calendar.google.com
-GOOGLE_CALENDAR_API_KEY=   # clé API publique Google (lecture seule, sans OAuth)
-```
-
-### 5.6 GHL Booking (iframe)
-
-Déjà prévu via `ghlBookingUrl` sur `ClientProfile`. À configurer par le coach dans le profil client.  
-**Token GHL Private Integration** : à régénérer (partagé en chat) → `GHL_API_TOKEN` dans `.env`
-
-### 5.7 Design — Refonte UI
-
-Des fichiers HTML de design seront fournis section par section (générés via Claude Design sur claude.ai/design). Intégration dans les composants React/Tailwind existants sans toucher à la logique métier.
-
-### 5.8 Fireflies (sprint suivant — V2)
-
-**API Key** : à régénérer (partagé en chat)  
-**Concept** : afficher transcripts + résumés + actions dans l'onglet client du coach  
-**Matching** : par nom du meeting (convention : "Coaching – Prénom Nom") ou par email du participant  
-**Prérequis** : définir convention de nommage des réunions dans GHL avant d'implémenter
-
----
-
-## 6. Points d'attention techniques
-
-- **Prisma version** : v5.22.0 — NE PAS upgrader vers v6/v7 (breaking changes)
-- **`previewFeatures = ["omitApi"]`** dans le schema Prisma — nécessaire pour `omit: { password: true }`
-- **`binaryTargets`** : `["native", "linux-musl-openssl-3.0.x"]` — requis pour Alpine Linux
-- **NextAuth** : `trustHost: true` obligatoire derrière reverse proxy
-- **Dockerfile** : mode non-standalone (copie `node_modules` complet) — ne pas activer `output: "standalone"` dans `next.config.ts`
-- **Migrations** : utiliser `prisma db push` (pas `migrate deploy`) car pas de fichiers de migration
-- **Prisma CLI sur le serveur** : toujours utiliser `./node_modules/.bin/prisma` (pas `npx prisma` qui télécharge v7)
-
----
-
-## 7. Sécurité — Actions pendantes
-
-- [ ] Régénérer le token GHL Private Integration (partagé en chat)
-- [ ] Régénérer la clé API Fireflies (partagée en chat)
-- [ ] Régénérer le token API MailerLite (partagé en chat — non utilisé finalement)
-- [ ] Changer le mot de passe du compte coach de démo après les premiers tests
-- [ ] Configurer les URLs vidéo et exercice dans le manager de modules coach
-- [ ] Configurer `ghlBookingUrl` sur les profils clients pour le calendrier individuel
-
----
-
-## 8. Pour reprendre dans une nouvelle conversation
-
-Coller ce message en début de session :
-
-> "Je reprends le projet Vision — plateforme de coaching Next.js déployée sur mon serveur Hetzner (`46.224.86.181`). Le repo est `matteo830/programmevision`, branche de dev `claude/plan-web-app-project-7vZ8V`. Lis le fichier `SYNTHESE.md` à la racine du projet pour le contexte complet. On démarre le sprint 2 : système admin + audit d'onboarding + reset mdp (Resend) + Google OAuth + Google Agenda + refonte UI."
+| Admin | `matteo@mindparachutes.com` | — (défini sur le serveur) |
