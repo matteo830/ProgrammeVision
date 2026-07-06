@@ -31,6 +31,32 @@ type Props = {
 
 type Tab = "coaches" | "clients" | "inactive";
 
+function Mountain() {
+  return (
+    <svg width="140" height="88" viewBox="0 0 140 88" fill="none"
+      className="absolute bottom-0 right-0 pointer-events-none" style={{ opacity: 0.2 }}>
+      <polygon points="70,8 140,88 0,88" fill="white" />
+      <polygon points="105,32 140,88 70,88" fill="white" opacity="0.5" />
+      <polygon points="25,50 70,88 0,88" fill="white" opacity="0.4" />
+    </svg>
+  );
+}
+
+function RoleBadge({ role }: { role: string }) {
+  const styles: Record<string, { bg: string; color: string; label: string }> = {
+    ADMIN:  { bg: "var(--gold-soft)",   color: "var(--gold-deep)",   label: "Admin"  },
+    COACH:  { bg: "var(--green-soft)",  color: "var(--green-deep)",  label: "Coach"  },
+    CLIENT: { bg: "rgba(232,82,125,0.1)", color: "var(--coral-end)", label: "Client" },
+  };
+  const s = styles[role] ?? styles.CLIENT;
+  return (
+    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+      style={{ background: s.bg, color: s.color }}>
+      {s.label}
+    </span>
+  );
+}
+
 export function AdminDashboard({ coaches, clients, inactive, currentAdminId }: Props) {
   const [tab, setTab] = useState<Tab>("clients");
   const [showModal, setShowModal] = useState(false);
@@ -60,57 +86,90 @@ export function AdminDashboard({ coaches, clients, inactive, currentAdminId }: P
   }
 
   const tabs: { key: Tab; label: string; count: number; icon: React.ReactNode }[] = [
-    { key: "clients", label: "Clients", count: clients.length, icon: <Users className="w-4 h-4" /> },
-    { key: "coaches", label: "Coaches & Admins", count: coaches.length, icon: <UserCheck className="w-4 h-4" /> },
-    { key: "inactive", label: "Désactivés", count: inactive.length, icon: <UserX className="w-4 h-4" /> },
+    { key: "clients",  label: "Clients",         count: clients.length,  icon: <Users     className="w-4 h-4" /> },
+    { key: "coaches",  label: "Coaches & Admins", count: coaches.length,  icon: <UserCheck className="w-4 h-4" /> },
+    { key: "inactive", label: "Désactivés",       count: inactive.length, icon: <UserX     className="w-4 h-4" /> },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Administration</h1>
-            <p className="text-sm text-gray-500 mt-1">Gestion des comptes</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => handleAdd("CLIENT")}
-              className="flex items-center gap-1.5 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800">
-              <Plus className="w-4 h-4" /> Client
-            </button>
-            <button onClick={() => handleAdd("COACH")}
-              className="flex items-center gap-1.5 px-3 py-2 bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-600">
-              <Plus className="w-4 h-4" /> Coach
-            </button>
-            <button onClick={() => handleAdd("ADMIN")}
-              className="flex items-center gap-1.5 px-3 py-2 bg-gray-500 text-white text-sm rounded-lg hover:bg-gray-400">
-              <Plus className="w-4 h-4" /> Admin
-            </button>
+    <div className="min-h-screen" style={{ background: "var(--cream)" }}>
+      <div className="max-w-5xl mx-auto px-4 py-6">
+
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-[20px] mb-6"
+          style={{ background: "linear-gradient(160deg, var(--green-deep) 0%, #07251F 100%)", padding: "24px 24px 22px" }}>
+          <Mountain />
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1.5" style={{ color: "var(--gold-light)" }}>
+            Panneau d'administration
+          </p>
+          <div className="flex items-end justify-between">
+            <div>
+              <h1 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em]" style={{ color: "#fff" }}>
+                Gestion des comptes
+              </h1>
+              <p className="text-[13px] mt-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>
+                {clients.length} clients · {coaches.length} coaches &amp; admins
+              </p>
+            </div>
+            {/* CTA boutons */}
+            <div className="flex gap-2 shrink-0">
+              <button onClick={() => handleAdd("CLIENT")}
+                className="flex items-center gap-1.5 text-[12.5px] font-bold px-3.5 py-2 rounded-[10px] transition-opacity active:opacity-80"
+                style={{ background: "linear-gradient(135deg, var(--coral-start), var(--coral-end))", color: "#fff" }}>
+                <Plus className="w-3.5 h-3.5" /> Client
+              </button>
+              <button onClick={() => handleAdd("COACH")}
+                className="flex items-center gap-1.5 text-[12.5px] font-bold px-3.5 py-2 rounded-[10px] transition-opacity active:opacity-80"
+                style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)" }}>
+                <Plus className="w-3.5 h-3.5" /> Coach
+              </button>
+              <button onClick={() => handleAdd("ADMIN")}
+                className="flex items-center gap-1.5 text-[12.5px] font-bold px-3.5 py-2 rounded-[10px] transition-opacity active:opacity-80"
+                style={{ background: "rgba(255,255,255,0.1)", color: "var(--gold-light)", border: "1px solid rgba(212,160,71,0.4)" }}>
+                <Plus className="w-3.5 h-3.5" /> Admin
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 mb-6 w-fit">
+        {/* Onglets */}
+        <div className="flex gap-1 rounded-[14px] p-1 mb-5 w-fit"
+          style={{ background: "#fff", border: "1px solid var(--border)" }}>
           {tabs.map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                tab === t.key ? "bg-gray-900 text-white" : "text-gray-500 hover:text-gray-900"
-              }`}>
+              className="flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-semibold transition-colors"
+              style={tab === t.key
+                ? { background: "var(--green-deep)", color: "#fff" }
+                : { color: "var(--ink-mute)" }
+              }>
               {t.icon} {t.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-white/20" : "bg-gray-100"}`}>
+              <span className="text-[11px] px-1.5 py-0.5 rounded-full font-bold"
+                style={tab === t.key
+                  ? { background: "rgba(255,255,255,0.2)", color: "#fff" }
+                  : { background: "var(--border-soft)", color: "var(--ink-mute)" }
+                }>
                 {t.count}
               </span>
             </button>
           ))}
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* Tableau */}
+        <div className="rounded-[16px] overflow-hidden" style={{ background: "#fff", border: "1px solid var(--border)" }}>
           {tab === "clients" && (
             <UserTable users={clients} onEdit={handleEdit} onToggle={handleToggleActive}
-              currentAdminId={currentAdminId} extra={(u) => (
-                <span className="text-xs text-gray-500">{(u as ClientWithStats).progressPercent}% complété</span>
-              )} />
+              currentAdminId={currentAdminId}
+              extra={(u) => {
+                const pct = (u as ClientWithStats).progressPercent;
+                return (
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--green-accent)" }} />
+                    </div>
+                    <span className="text-[12px] tabular-nums" style={{ color: "var(--ink-mute)" }}>{pct}%</span>
+                  </div>
+                );
+              }} />
           )}
           {tab === "coaches" && (
             <UserTable users={coaches} onEdit={handleEdit} onToggle={handleToggleActive} currentAdminId={currentAdminId} />
@@ -142,46 +201,59 @@ function UserTable({ users, onEdit, onToggle, currentAdminId, extra, showBadge }
   showBadge?: boolean;
 }) {
   if (users.length === 0) {
-    return <p className="text-center text-gray-400 py-12 text-sm">Aucun compte.</p>;
+    return (
+      <p className="text-center py-12 text-[13px]" style={{ color: "var(--ink-mute)" }}>
+        Aucun compte.
+      </p>
+    );
   }
 
   return (
-    <table className="w-full text-sm">
-      <thead className="bg-gray-50 border-b border-gray-100">
+    <table className="w-full text-[13px]">
+      <thead style={{ background: "var(--cream)", borderBottom: "1px solid var(--border-soft)" }}>
         <tr>
-          <th className="text-left px-4 py-3 font-medium text-gray-500">Nom</th>
-          <th className="text-left px-4 py-3 font-medium text-gray-500">Email</th>
-          <th className="text-left px-4 py-3 font-medium text-gray-500">Rôle</th>
-          {extra && <th className="text-left px-4 py-3 font-medium text-gray-500">Progression</th>}
-          <th className="text-right px-4 py-3 font-medium text-gray-500">Actions</th>
+          <th className="text-left px-5 py-3 font-semibold" style={{ color: "var(--ink-soft)" }}>Nom</th>
+          <th className="text-left px-4 py-3 font-semibold" style={{ color: "var(--ink-soft)" }}>Email</th>
+          <th className="text-left px-4 py-3 font-semibold" style={{ color: "var(--ink-soft)" }}>Rôle</th>
+          {extra && <th className="text-left px-4 py-3 font-semibold" style={{ color: "var(--ink-soft)" }}>Progression</th>}
+          <th className="text-right px-5 py-3 font-semibold" style={{ color: "var(--ink-soft)" }}>Actions</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-gray-50">
-        {users.map((u) => (
-          <tr key={u.id} className="hover:bg-gray-50">
-            <td className="px-4 py-3 font-medium text-gray-900">
-              {u.firstName} {u.lastName}
-              {showBadge && (
-                <span className="ml-2 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Inactif</span>
-              )}
+      <tbody>
+        {users.map((u, i) => (
+          <tr key={u.id}
+            style={{ borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined }}
+            className="hover:bg-[var(--cream)] transition-colors">
+            <td className="px-5 py-3.5 font-semibold" style={{ color: "var(--ink)" }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                  style={{ background: "var(--green-soft)", color: "var(--green-deep)" }}>
+                  {u.firstName[0]}{u.lastName[0]}
+                </div>
+                {u.firstName} {u.lastName}
+                {showBadge && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={{ background: "rgba(232,82,125,0.1)", color: "var(--coral-end)" }}>
+                    Inactif
+                  </span>
+                )}
+              </div>
             </td>
-            <td className="px-4 py-3 text-gray-500">{u.email}</td>
-            <td className="px-4 py-3">
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                u.role === "ADMIN" ? "bg-purple-100 text-purple-700" :
-                u.role === "COACH" ? "bg-blue-100 text-blue-700" :
-                "bg-green-100 text-green-700"
-              }`}>{u.role}</span>
-            </td>
-            {extra && <td className="px-4 py-3 text-gray-500">{extra(u)}</td>}
-            <td className="px-4 py-3 text-right">
-              <div className="flex items-center justify-end gap-2">
-                <button onClick={() => onEdit(u)} className="p-1.5 text-gray-400 hover:text-gray-700 rounded">
+            <td className="px-4 py-3.5" style={{ color: "var(--ink-mute)" }}>{u.email}</td>
+            <td className="px-4 py-3.5"><RoleBadge role={u.role} /></td>
+            {extra && <td className="px-4 py-3.5">{extra(u)}</td>}
+            <td className="px-5 py-3.5 text-right">
+              <div className="flex items-center justify-end gap-1.5">
+                <button onClick={() => onEdit(u)}
+                  className="p-1.5 rounded-lg transition-colors"
+                  style={{ color: "var(--ink-mute)" }}
+                  title="Modifier">
                   <Pencil className="w-4 h-4" />
                 </button>
                 {u.id !== currentAdminId && (
                   <button onClick={() => onToggle(u)}
-                    className={`p-1.5 rounded ${u.isActive ? "text-gray-400 hover:text-red-600" : "text-gray-400 hover:text-green-600"}`}
+                    className="p-1.5 rounded-lg transition-colors"
+                    style={{ color: "var(--ink-mute)" }}
                     title={u.isActive ? "Désactiver" : "Réactiver"}>
                     {u.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
                   </button>

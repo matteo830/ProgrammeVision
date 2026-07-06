@@ -7,7 +7,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
   if (!session?.user || (session.user.role !== "COACH" && session.user.role !== "ADMIN")) redirect("/dashboard");
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: "var(--cream)" }}>
       <Sidebar role="COACH" />
       <main className="md:ml-64 min-h-screen">{children}</main>
     </div>

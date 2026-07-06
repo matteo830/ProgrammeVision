@@ -11,6 +11,10 @@ type Props = {
   onSuccess: () => void;
 };
 
+const inputClass = "w-full px-3 py-2.5 rounded-[10px] text-[13.5px]";
+const inputStyle = { border: "1px solid var(--border)", background: "#fff", color: "var(--ink)", fontFamily: "inherit", outline: "none" };
+const labelStyle = { color: "var(--ink-soft)", fontSize: "12px", fontWeight: 600, letterSpacing: "0.03em" };
+
 export function UserFormModal({ user, defaultRole, onClose, onSuccess }: Props) {
   const isEdit = !!user;
   const [form, setForm] = useState({
@@ -51,21 +55,35 @@ export function UserFormModal({ user, defaultRole, onClose, onSuccess }: Props) 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ background: "rgba(26,23,20,0.5)" }}>
+      <div className="w-full max-w-md rounded-[20px] shadow-2xl p-6" style={{ background: "#fff" }}>
+
+        {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {isEdit ? "Modifier le compte" : "Créer un compte"}
-          </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em] mb-0.5" style={{ color: "var(--ink-mute)" }}>
+              {isEdit ? "Modifier" : "Créer"}
+            </p>
+            <h2 className="text-[17px] font-extrabold" style={{ color: "var(--ink)" }}>
+              {isEdit ? `${user!.firstName} ${user!.lastName}` : "Nouveau compte"}
+            </h2>
+          </div>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: "var(--border-soft)", color: "var(--ink-soft)" }}>
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
+
+          {/* Rôle (création uniquement) */}
           {!isEdit && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+              <label className="block mb-1.5" style={labelStyle}>Rôle</label>
               <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+                className={inputClass} style={inputStyle}>
                 <option value="CLIENT">Client</option>
                 <option value="COACH">Coach</option>
                 <option value="ADMIN">Admin</option>
@@ -73,68 +91,86 @@ export function UserFormModal({ user, defaultRole, onClose, onSuccess }: Props) 
             </div>
           )}
 
+          {/* Prénom / Nom */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+              <label className="block mb-1.5" style={labelStyle}>Prénom</label>
               <input required value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+                className={inputClass} style={inputStyle} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+              <label className="block mb-1.5" style={labelStyle}>Nom</label>
               <input required value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+                className={inputClass} style={inputStyle} />
             </div>
           </div>
 
+          {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input type="email" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+            <label className="block mb-1.5" style={labelStyle}>Email</label>
+            <input type="email" required value={form.email}
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              className={inputClass} style={inputStyle} />
           </div>
 
+          {/* Mot de passe */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe {isEdit && <span className="text-gray-400 font-normal">(laisser vide pour ne pas changer)</span>}
+            <label className="block mb-1.5" style={labelStyle}>
+              Mot de passe
+              {isEdit && <span className="ml-1 font-normal" style={{ color: "var(--ink-mute)" }}>(laisser vide pour ne pas changer)</span>}
             </label>
             <input type="password" required={!isEdit} minLength={8} value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
               placeholder={isEdit ? "Nouveau mot de passe" : "8 caractères minimum"}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+              className={inputClass} style={inputStyle} />
           </div>
 
+          {/* Date début (client, création) */}
           {!isEdit && form.role === "CLIENT" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date de début du programme</label>
-              <input type="date" value={form.programStartDate} onChange={e => setForm(f => ({ ...f, programStartDate: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+              <label className="block mb-1.5" style={labelStyle}>Date de début du programme</label>
+              <input type="date" value={form.programStartDate}
+                onChange={e => setForm(f => ({ ...f, programStartDate: e.target.value }))}
+                className={inputClass} style={inputStyle} />
             </div>
           )}
 
+          {/* Calendrier GHL (coach ou admin) */}
           {(form.role === "COACH" || form.role === "ADMIN") && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Calendrier GHL <span className="text-gray-400 font-normal">(code iframe ou URL)</span>
+              <label className="block mb-1.5" style={labelStyle}>
+                Calendrier GHL
+                <span className="ml-1 font-normal" style={{ color: "var(--ink-mute)" }}>(code iframe ou URL)</span>
               </label>
               <textarea
                 value={form.ghlCalendarSlug}
                 onChange={e => setForm(f => ({ ...f, ghlCalendarSlug: e.target.value }))}
                 placeholder={`<iframe src="https://api.leadconnectorhq.com/widget/booking/..." ...></iframe>`}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-mono resize-none"
+                className="w-full px-3 py-2.5 rounded-[10px] text-[12px] resize-none font-mono"
+                style={{ ...inputStyle, color: "var(--ink-soft)" }}
               />
             </div>
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="text-[12.5px] px-3 py-2 rounded-[8px]"
+              style={{ background: "rgba(232,82,125,0.08)", color: "var(--coral-end)" }}>
+              {error}
+            </p>
+          )}
 
-          <div className="flex gap-3 pt-1">
+          {/* Actions */}
+          <div className="flex gap-2.5 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
+              className="flex-1 py-2.5 rounded-[12px] text-[13.5px] font-semibold transition-colors"
+              style={{ border: "1px solid var(--border)", color: "var(--ink-soft)", background: "#fff" }}>
               Annuler
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 bg-gray-900 text-white py-2.5 text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50">
-              {loading ? "..." : isEdit ? "Enregistrer" : "Créer"}
+              className="flex-1 py-2.5 rounded-[12px] text-[13.5px] font-bold text-white transition-opacity disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, var(--coral-start), var(--coral-end))" }}>
+              {loading ? "…" : isEdit ? "Enregistrer" : "Créer le compte"}
             </button>
           </div>
         </form>
