@@ -2,21 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import {
-  Users,
-  AlertTriangle,
-  TrendingUp,
-  Search,
-  Clock,
-  ChevronRight,
-  UserPlus,
-} from "lucide-react";
-import { cn, formatDateShort } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Users, AlertTriangle, TrendingUp, Search, Clock, ChevronRight } from "lucide-react";
+import { formatDateShort } from "@/lib/utils";
 
 interface ClientStat {
   id: string;
@@ -31,6 +18,14 @@ interface ClientStat {
   lastActivity: string | null;
 }
 
+const inputStyle: React.CSSProperties = {
+  border: "1px solid var(--border)",
+  background: "#fff",
+  color: "var(--ink)",
+  fontFamily: "inherit",
+  outline: "none",
+};
+
 export function CoachDashboard() {
   const [clients, setClients] = useState<ClientStat[]>([]);
   const [search, setSearch] = useState("");
@@ -39,10 +34,7 @@ export function CoachDashboard() {
   useEffect(() => {
     fetch("/api/coach/clients")
       .then((r) => r.json())
-      .then((data) => {
-        setClients(data);
-        setLoading(false);
-      });
+      .then((data) => { setClients(data); setLoading(false); });
   }, []);
 
   const filtered = clients.filter(
@@ -52,175 +44,146 @@ export function CoachDashboard() {
   );
 
   const atRisk = clients.filter(
-    (c) =>
-      c.lastActivity &&
-      Date.now() - new Date(c.lastActivity).getTime() > 5 * 24 * 60 * 60 * 1000
+    (c) => c.lastActivity && Date.now() - new Date(c.lastActivity).getTime() > 5 * 24 * 60 * 60 * 1000
   );
 
+  const avgProgress =
+    clients.length > 0
+      ? Math.round(clients.reduce((s, c) => s + c.progressPercent, 0) / clients.length)
+      : 0;
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mes clients</h1>
-          <p className="text-sm text-gray-500">{clients.length} clients actifs</p>
-        </div>
-        <Link href="/coach/clients/new">
-          <Button size="sm">
-            <UserPlus className="w-4 h-4" />
-            Nouveau client
-          </Button>
-        </Link>
+    <div className="max-w-5xl mx-auto px-4 py-6">
+
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-[20px] mb-6"
+        style={{ background: "linear-gradient(160deg, var(--green-deep) 0%, #07251F 100%)", padding: "24px 24px 22px" }}>
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-1.5" style={{ color: "var(--gold-light)" }}>
+          Espace coach
+        </p>
+        <h1 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em]" style={{ color: "#fff" }}>
+          Mes clients
+        </h1>
+        <p className="text-[13px] mt-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>
+          {clients.length} client{clients.length !== 1 ? "s" : ""} actif{clients.length !== 1 ? "s" : ""}
+        </p>
       </div>
 
-      {/* Stats résumé */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-green-600" />
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        {([
+          { icon: <Users className="w-5 h-5" />, value: clients.length, label: "Total clients", color: "var(--green-deep)" },
+          { icon: <TrendingUp className="w-5 h-5" />, value: `${avgProgress}%`, label: "Moy. progression", color: "var(--green-accent)" },
+          { icon: <AlertTriangle className="w-5 h-5" />, value: atRisk.length, label: "À relancer", color: "var(--coral-end)" },
+        ] as const).map((stat, i) => (
+          <div key={i} className="rounded-[16px] p-4" style={{ background: "#fff", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2.5">
+              <div style={{ color: stat.color }}>{stat.icon}</div>
               <div>
-                <p className="text-xl font-bold text-gray-900">{clients.length}</p>
-                <p className="text-xs text-gray-500">Total clients</p>
+                <p className="text-[20px] font-extrabold leading-none" style={{ color: "var(--ink)" }}>{stat.value}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--ink-mute)" }}>{stat.label}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              <div>
-                <p className="text-xl font-bold text-gray-900">
-                  {clients.length > 0
-                    ? Math.round(
-                        clients.reduce((s, c) => s + c.progressPercent, 0) /
-                          clients.length
-                      )
-                    : 0}%
-                </p>
-                <p className="text-xs text-gray-500">Moy. progression</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-orange-500" />
-              <div>
-                <p className="text-xl font-bold text-gray-900">{atRisk.length}</p>
-                <p className="text-xs text-gray-500">À relancer</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        ))}
       </div>
 
-      {/* Recherche */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <Input
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--ink-mute)" }} />
+        <input
           placeholder="Rechercher un client..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
+          className="w-full pl-10 pr-4 py-2.5 rounded-[10px] text-[13.5px]"
+          style={inputStyle}
         />
       </div>
 
-      {/* Tableau clients */}
+      {/* Client list */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Chargement...</div>
+        <p className="text-center py-12 text-[13px]" style={{ color: "var(--ink-mute)" }}>Chargement...</p>
       ) : (
         <div className="space-y-2">
           {filtered.map((client) => {
-            const daysSinceActivity = client.lastActivity
-              ? Math.floor(
-                  (Date.now() - new Date(client.lastActivity).getTime()) /
-                    (1000 * 60 * 60 * 24)
-                )
+            const daysSince = client.lastActivity
+              ? Math.floor((Date.now() - new Date(client.lastActivity).getTime()) / (1000 * 60 * 60 * 24))
               : null;
 
-            const statusVariant =
-              client.progressPercent >= 70
-                ? "default"
-                : daysSinceActivity !== null && daysSinceActivity > 7
-                ? "destructive"
-                : daysSinceActivity !== null && daysSinceActivity > 4
-                ? "pending"
-                : "secondary";
-
+            const isAtRisk = daysSince !== null && daysSince > 7;
+            const isPending = daysSince !== null && daysSince > 4 && !isAtRisk;
             const statusLabel =
-              client.progressPercent >= 70
-                ? "En avance"
-                : daysSinceActivity !== null && daysSinceActivity > 7
-                ? `Inactif ${daysSinceActivity}j`
-                : daysSinceActivity !== null && daysSinceActivity > 4
-                ? `Inactif ${daysSinceActivity}j`
-                : "Dans le rythme";
+              client.progressPercent >= 70 ? "En avance"
+              : isAtRisk ? `Inactif ${daysSince}j`
+              : isPending ? `Inactif ${daysSince}j`
+              : "Dans le rythme";
+            const statusBg =
+              client.progressPercent >= 70 ? "var(--green-soft)"
+              : isAtRisk ? "rgba(232,82,125,0.1)"
+              : isPending ? "rgba(255,138,107,0.12)"
+              : "var(--border-soft)";
+            const statusColor =
+              client.progressPercent >= 70 ? "var(--green-deep)"
+              : isAtRisk ? "var(--coral-end)"
+              : isPending ? "var(--coral-start)"
+              : "var(--ink-mute)";
 
             return (
               <Link key={client.id} href={`/coach/clients/${client.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-bold text-sm flex-shrink-0">
-                        {client.avatarUrl ? (
-                          <img
-                            src={client.avatarUrl}
-                            alt=""
-                            className="w-full h-full rounded-full object-cover"
-                          />
-                        ) : (
-                          client.firstName[0]
-                        )}
-                      </div>
+                <div className="flex items-center gap-3 rounded-[16px] px-4 py-3.5 transition-opacity hover:opacity-90 cursor-pointer"
+                  style={{ background: "#fff", border: "1px solid var(--border)" }}>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-gray-900">
-                            {client.firstName} {client.lastName}
-                          </p>
-                          <Badge variant={statusVariant} className="text-[10px]">
-                            {statusLabel}
-                          </Badge>
-                          {daysSinceActivity !== null && daysSinceActivity > 4 && (
-                            <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1.5">
-                          <Progress
-                            value={client.progressPercent}
-                            className="h-1.5 flex-1"
-                          />
-                          <span className="text-xs font-semibold text-gray-600 w-9 text-right">
-                            {client.progressPercent}%
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-[11px] text-gray-400">
-                            {client.validatedModules}/{client.totalModules} modules
-                          </span>
-                          {client.lastActivity && (
-                            <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatDateShort(client.lastActivity)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0"
+                    style={{ background: "var(--green-soft)", color: "var(--green-deep)" }}>
+                    {client.avatarUrl ? (
+                      <img src={client.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                    ) : `${client.firstName[0]}${client.lastName[0]}`}
+                  </div>
 
-                      <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-[13.5px] font-semibold" style={{ color: "var(--ink)" }}>
+                        {client.firstName} {client.lastName}
+                      </p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: statusBg, color: statusColor }}>
+                        {statusLabel}
+                      </span>
+                      {(isAtRisk || isPending) && (
+                        <AlertTriangle className="w-3.5 h-3.5" style={{ color: "var(--coral-end)" }} />
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+                        <div className="h-full rounded-full" style={{ width: `${client.progressPercent}%`, background: "var(--green-accent)" }} />
+                      </div>
+                      <span className="text-[11px] font-semibold w-9 text-right" style={{ color: "var(--ink-soft)" }}>
+                        {client.progressPercent}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-[11px]" style={{ color: "var(--ink-mute)" }}>
+                        {client.validatedModules}/{client.totalModules} modules
+                      </span>
+                      {client.lastActivity && (
+                        <span className="text-[11px] flex items-center gap-1" style={{ color: "var(--ink-mute)" }}>
+                          <Clock className="w-3 h-3" />
+                          {formatDateShort(client.lastActivity)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <ChevronRight className="w-4 h-4 shrink-0" style={{ color: "var(--border)" }} />
+                </div>
               </Link>
             );
           })}
 
           {filtered.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
+            <p className="text-center py-8 text-[13px]" style={{ color: "var(--ink-mute)" }}>
               Aucun client trouvé
-            </div>
+            </p>
           )}
         </div>
       )}

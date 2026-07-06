@@ -3,12 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SessionForm } from "@/components/coach/session-form";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -22,7 +16,7 @@ import {
   EyeOff,
   Send,
 } from "lucide-react";
-import { cn, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 interface ClientDetailViewProps {
   client: {
@@ -95,6 +89,14 @@ interface ClientDetailViewProps {
 
 type ActiveTab = "formation" | "notes" | "questions" | "seances";
 
+const inputStyle: React.CSSProperties = {
+  border: "1px solid var(--border)",
+  background: "#fff",
+  color: "var(--ink)",
+  fontFamily: "inherit",
+  outline: "none",
+};
+
 export function ClientDetailView({
   client,
   progress,
@@ -122,17 +124,11 @@ export function ClientDetailView({
   async function saveNote() {
     if (!noteContent.trim()) return;
     setSavingNote(true);
-
     const res = await fetch("/api/coaching/notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: noteContent,
-        clientId: client.id,
-        visibility: noteVisibility,
-      }),
+      body: JSON.stringify({ content: noteContent, clientId: client.id, visibility: noteVisibility }),
     });
-
     const note = await res.json();
     setNotes([note, ...notes]);
     setNoteContent("");
@@ -144,12 +140,7 @@ export function ClientDetailView({
     await fetch("/api/modules/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        moduleId,
-        clientId: client.id,
-        validated,
-        coachComment: coachComment[moduleId] ?? null,
-      }),
+      body: JSON.stringify({ moduleId, clientId: client.id, validated, coachComment: coachComment[moduleId] ?? null }),
     });
     setValidating(null);
     window.location.reload();
@@ -158,19 +149,15 @@ export function ClientDetailView({
   async function sendReply(questionId: string) {
     const content = replyContent[questionId];
     if (!content?.trim()) return;
-
     const res = await fetch(`/api/questions/${questionId}/reply`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),
     });
-
     const reply = await res.json();
     setQuestions((prev) =>
       prev.map((q) =>
-        q.id === questionId
-          ? { ...q, status: "ANSWERED", replies: [...q.replies, reply] }
-          : q
+        q.id === questionId ? { ...q, status: "ANSWERED", replies: [...q.replies, reply] } : q
       )
     );
     setReplyContent((prev) => ({ ...prev, [questionId]: "" }));
@@ -187,288 +174,257 @@ export function ClientDetailView({
     setCreatingSession(false);
     if (res.ok) {
       const created = await res.json();
-      setSessions(prev => [created, ...prev]);
+      setSessions((prev) => [created, ...prev]);
       setNewSessionTitle("");
       setNewSessionDate("");
       setShowNewSessionForm(false);
     }
   }
 
-  const tabs: { id: ActiveTab; label: string; icon: typeof MessageCircle }[] = [
-    { id: "formation", label: "Formation", icon: CheckCircle2 },
-    { id: "seances", label: "Séances", icon: MessageCircle },
-    { id: "notes", label: "Notes", icon: MessageCircle },
-    { id: "questions", label: "Questions", icon: FileText },
+  const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
+    { id: "formation", label: "Formation", icon: <CheckCircle2 className="w-4 h-4" /> },
+    { id: "seances",   label: "Séances",   icon: <MessageCircle className="w-4 h-4" /> },
+    { id: "notes",     label: "Notes",     icon: <MessageCircle className="w-4 h-4" /> },
+    { id: "questions", label: "Questions", icon: <FileText className="w-4 h-4" /> },
   ];
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/dashboard">
-          <button className="p-2 rounded-xl hover:bg-gray-100">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          <button className="p-2 rounded-xl transition-colors"
+            style={{ background: "var(--border-soft)", color: "var(--ink-soft)" }}>
+            <ArrowLeft className="w-5 h-5" />
           </button>
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-bold">
-            {client.firstName[0]}
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
+            style={{ background: "var(--green-soft)", color: "var(--green-deep)" }}>
+            {client.firstName[0]}{client.lastName[0]}
           </div>
           <div>
-            <h1 className="font-bold text-gray-900">
+            <h1 className="text-[16px] font-bold" style={{ color: "var(--ink)" }}>
               {client.firstName} {client.lastName}
             </h1>
-            <p className="text-xs text-gray-500">{client.email}</p>
+            <p className="text-[12px]" style={{ color: "var(--ink-mute)" }}>{client.email}</p>
           </div>
         </div>
       </div>
 
-      {/* Contexte client */}
-      <Card>
-        <CardContent className="pt-4 pb-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Objectif 6 mois</p>
-              <p className="text-sm font-medium text-gray-900">
-                {client.clientProfile?.objective6months ?? "—"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Début programme</p>
-              <p className="text-sm font-medium text-gray-900">
-                {client.clientProfile?.programStartDate
-                  ? formatDate(client.clientProfile.programStartDate)
-                  : "—"}
-              </p>
-            </div>
+      {/* Client context card */}
+      <div className="rounded-[16px] p-4" style={{ background: "#fff", border: "1px solid var(--border)" }}>
+        <div className="grid grid-cols-2 gap-4 mb-3">
+          <div>
+            <p className="text-[11px] font-semibold mb-0.5" style={{ color: "var(--ink-mute)" }}>Objectif 6 mois</p>
+            <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>
+              {client.clientProfile?.objective6months ?? "—"}
+            </p>
           </div>
-          <div className="mt-3 flex items-center gap-3">
-            <Progress value={progress.globalPercent} className="flex-1" />
-            <span className="text-sm font-bold text-green-700 w-10 text-right">
-              {progress.globalPercent}%
-            </span>
+          <div>
+            <p className="text-[11px] font-semibold mb-0.5" style={{ color: "var(--ink-mute)" }}>Début programme</p>
+            <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>
+              {client.clientProfile?.programStartDate ? formatDate(client.clientProfile.programStartDate) : "—"}
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+            <div className="h-full rounded-full" style={{ width: `${progress.globalPercent}%`, background: "var(--green-accent)" }} />
+          </div>
+          <span className="text-[13px] font-bold w-10 text-right" style={{ color: "var(--green-deep)" }}>
+            {progress.globalPercent}%
+          </span>
+        </div>
+      </div>
 
-      {/* Onglets */}
-      <div className="flex border-b border-gray-200">
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-[14px] p-1 w-fit"
+        style={{ background: "#fff", border: "1px solid var(--border)" }}>
         {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
-              activeTab === tab.id
-                ? "border-green-700 text-green-700"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            )}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className="flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-semibold transition-colors"
+            style={activeTab === tab.id
+              ? { background: "var(--green-deep)", color: "#fff" }
+              : { color: "var(--ink-mute)" }
+            }>
+            {tab.icon} {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Formation */}
+      {/* Formation tab */}
       {activeTab === "formation" && (
         <div className="space-y-3">
           {progress.phases.map((phase) => (
-            <Card key={phase.id} className={cn(!phase.isUnlocked && "opacity-60")}>
+            <div key={phase.id} className="rounded-[16px] overflow-hidden transition-opacity"
+              style={{
+                background: "#fff",
+                border: "1px solid var(--border)",
+                opacity: phase.isUnlocked ? 1 : 0.6,
+              }}>
               <button
-                onClick={() =>
-                  setExpandedPhase(expandedPhase === phase.order ? null : phase.order)
-                }
-                className="w-full text-left"
-              >
-                <CardHeader className="pb-2 pt-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
-                        phase.isCompleted
-                          ? "bg-green-500 text-white"
-                          : !phase.isUnlocked
-                          ? "bg-gray-100 text-gray-400"
-                          : "bg-amber-100 text-amber-800"
-                      )}
-                    >
-                      {phase.isCompleted ? (
-                        <CheckCircle2 className="w-4 h-4" />
-                      ) : !phase.isUnlocked ? (
-                        <Lock className="w-3 h-3" />
-                      ) : (
-                        phase.order
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm">{phase.title}</CardTitle>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-gray-600">
-                            {phase.progressPercent}%
-                          </span>
-                          {expandedPhase === phase.order ? (
-                            <ChevronUp className="w-4 h-4 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4 text-gray-400" />
-                          )}
-                        </div>
+                onClick={() => setExpandedPhase(expandedPhase === phase.order ? null : phase.order)}
+                className="w-full text-left px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                    style={{
+                      background: phase.isCompleted ? "var(--green-accent)" : !phase.isUnlocked ? "var(--border-soft)" : "var(--gold-soft)",
+                      color: phase.isCompleted ? "#fff" : !phase.isUnlocked ? "var(--ink-mute)" : "var(--gold-deep)",
+                    }}>
+                    {phase.isCompleted ? <CheckCircle2 className="w-4 h-4" /> : !phase.isUnlocked ? <Lock className="w-3 h-3" /> : phase.order}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[13.5px] font-semibold" style={{ color: "var(--ink)" }}>{phase.title}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[12px] font-bold" style={{ color: "var(--ink-soft)" }}>{phase.progressPercent}%</span>
+                        {expandedPhase === phase.order
+                          ? <ChevronUp className="w-4 h-4" style={{ color: "var(--ink-mute)" }} />
+                          : <ChevronDown className="w-4 h-4" style={{ color: "var(--ink-mute)" }} />}
                       </div>
-                      <Progress value={phase.progressPercent} className="mt-1.5 h-1.5" />
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border-soft)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${phase.progressPercent}%`, background: "var(--green-accent)" }} />
                     </div>
                   </div>
-                </CardHeader>
+                </div>
               </button>
 
               {expandedPhase === phase.order && (
-                <CardContent className="pt-0 space-y-2">
+                <div className="px-5 pb-4 space-y-2" style={{ borderTop: "1px solid var(--border-soft)" }}>
                   {phase.modules.map((module) => {
                     const p = module.progress;
                     return (
-                      <div
-                        key={module.id}
-                        className={cn(
-                          "border rounded-xl p-3",
-                          p?.coachValidated ? "border-green-200 bg-green-50" : "border-gray-100"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2">
-                            {p?.coachValidated ? (
-                              <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                            ) : (
-                              <Circle className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                            )}
-                            <p className="text-sm font-medium text-gray-900">{module.title}</p>
-                          </div>
+                      <div key={module.id} className="rounded-[12px] p-3 mt-2"
+                        style={{
+                          border: `1px solid ${p?.coachValidated ? "var(--green-accent)" : "var(--border-soft)"}`,
+                          background: p?.coachValidated ? "var(--green-soft)" : "#fff",
+                        }}>
+                        <div className="flex items-center gap-2 mb-2">
+                          {p?.coachValidated
+                            ? <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: "var(--green-accent)" }} />
+                            : <Circle className="w-4 h-4 shrink-0" style={{ color: "var(--border)" }} />}
+                          <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>{module.title}</p>
                         </div>
-
-                        <div className="flex gap-3 ml-6 text-[11px] text-gray-500">
-                          <span className={cn(p?.videoWatched && "text-green-600 font-medium")}>
+                        <div className="flex gap-3 ml-6">
+                          <span className="text-[11px] font-semibold"
+                            style={{ color: p?.videoWatched ? "var(--green-deep)" : "var(--ink-mute)" }}>
                             Vidéo {p?.videoWatched ? "✓" : "—"}
                           </span>
-                          <span className={cn(p?.exerciseSubmitted && "text-green-600 font-medium")}>
+                          <span className="text-[11px] font-semibold"
+                            style={{ color: p?.exerciseSubmitted ? "var(--green-deep)" : "var(--ink-mute)" }}>
                             Exercice {p?.exerciseSubmitted ? "✓" : "—"}
                           </span>
                         </div>
 
                         {p?.exerciseSubmitted && !p?.coachValidated && (
                           <div className="mt-3 ml-6 space-y-2">
-                            <Input
+                            <input
                               placeholder="Commentaire (optionnel)"
                               value={coachComment[module.id] ?? ""}
-                              onChange={(e) =>
-                                setCoachComment((prev) => ({
-                                  ...prev,
-                                  [module.id]: e.target.value,
-                                }))
-                              }
-                              className="text-xs h-9"
+                              onChange={(e) => setCoachComment((prev) => ({ ...prev, [module.id]: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-[8px] text-[12px]"
+                              style={inputStyle}
                             />
-                            <Button
-                              size="sm"
-                              variant="success"
+                            <button
                               onClick={() => validateModule(module.id, true)}
                               disabled={validating === module.id}
-                              className="text-xs h-8"
-                            >
+                              className="px-4 py-1.5 rounded-[8px] text-[12px] font-bold text-white transition-opacity disabled:opacity-50"
+                              style={{ background: "linear-gradient(135deg, var(--green-deep), #07251F)" }}>
                               {validating === module.id ? "Validation..." : "Valider l'exercice"}
-                            </Button>
+                            </button>
                           </div>
                         )}
 
                         {p?.coachComment && (
-                          <p className="ml-6 mt-2 text-xs text-gray-500 italic">
+                          <p className="ml-6 mt-2 text-[11.5px] italic" style={{ color: "var(--ink-mute)" }}>
                             &ldquo;{p.coachComment}&rdquo;
                           </p>
                         )}
                       </div>
                     );
                   })}
-                </CardContent>
+                </div>
               )}
-            </Card>
+            </div>
           ))}
         </div>
       )}
 
-      {/* Notes */}
+      {/* Notes tab */}
       {activeTab === "notes" && (
         <div className="space-y-4">
-          <Card>
-            <CardContent className="pt-4 space-y-3">
-              <p className="text-sm font-semibold text-gray-800">Ajouter une note</p>
-              <Textarea
-                placeholder="Notes de coaching, décisions prises, prises de conscience..."
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                className="min-h-[100px]"
-              />
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setNoteVisibility("CLIENT_VISIBLE")}
-                    className={cn(
-                      "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors",
-                      noteVisibility === "CLIENT_VISIBLE"
-                        ? "bg-green-50 border-green-300 text-green-700"
-                        : "border-gray-200 text-gray-500"
-                    )}
-                  >
-                    <Eye className="w-3 h-3" /> Visible client
-                  </button>
-                  <button
-                    onClick={() => setNoteVisibility("TEAM_ONLY")}
-                    className={cn(
-                      "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors",
-                      noteVisibility === "TEAM_ONLY"
-                        ? "bg-orange-50 border-orange-300 text-orange-700"
-                        : "border-gray-200 text-gray-500"
-                    )}
-                  >
-                    <EyeOff className="w-3 h-3" /> Équipe seulement
-                  </button>
-                </div>
-                <Button size="sm" onClick={saveNote} disabled={savingNote}>
-                  {savingNote ? "Enregistrement..." : "Enregistrer"}
-                </Button>
+          {/* Add note */}
+          <div className="rounded-[16px] p-4" style={{ background: "#fff", border: "1px solid var(--border)" }}>
+            <p className="text-[13px] font-semibold mb-3" style={{ color: "var(--ink)" }}>Ajouter une note</p>
+            <textarea
+              placeholder="Notes de coaching, décisions prises, prises de conscience..."
+              value={noteContent}
+              onChange={(e) => setNoteContent(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2.5 rounded-[10px] text-[13px] resize-none"
+              style={inputStyle}
+            />
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setNoteVisibility("CLIENT_VISIBLE")}
+                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full border transition-colors"
+                  style={noteVisibility === "CLIENT_VISIBLE"
+                    ? { background: "var(--green-soft)", border: "1px solid var(--green-accent)", color: "var(--green-deep)" }
+                    : { border: "1px solid var(--border)", color: "var(--ink-mute)" }}>
+                  <Eye className="w-3 h-3" /> Visible client
+                </button>
+                <button
+                  onClick={() => setNoteVisibility("TEAM_ONLY")}
+                  className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-full transition-colors"
+                  style={noteVisibility === "TEAM_ONLY"
+                    ? { background: "rgba(212,160,71,0.1)", border: "1px solid var(--gold)", color: "var(--gold-deep)" }
+                    : { border: "1px solid var(--border)", color: "var(--ink-mute)" }}>
+                  <EyeOff className="w-3 h-3" /> Équipe seulement
+                </button>
               </div>
-            </CardContent>
-          </Card>
+              <button
+                onClick={saveNote}
+                disabled={savingNote}
+                className="px-4 py-1.5 rounded-[10px] text-[13px] font-bold text-white transition-opacity disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, var(--coral-start), var(--coral-end))" }}>
+                {savingNote ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </div>
+          </div>
 
+          {/* Notes list */}
           <div className="space-y-3">
             {notes.map((note) => (
-              <Card
-                key={note.id}
-                className={cn(
-                  note.visibility === "TEAM_ONLY" && "border-orange-100 bg-orange-50"
-                )}
-              >
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-gray-700">
-                        {note.author.firstName} {note.author.lastName}
-                      </span>
-                      <Badge
-                        variant={note.visibility === "TEAM_ONLY" ? "pending" : "default"}
-                        className="text-[10px]"
-                      >
-                        {note.visibility === "TEAM_ONLY" ? "Équipe" : "Visible"}
-                      </Badge>
-                    </div>
-                    <span className="text-[11px] text-gray-400">
-                      {formatDate(note.createdAt)}
+              <div key={note.id} className="rounded-[16px] p-4"
+                style={{
+                  background: note.visibility === "TEAM_ONLY" ? "rgba(212,160,71,0.06)" : "#fff",
+                  border: `1px solid ${note.visibility === "TEAM_ONLY" ? "var(--gold)" : "var(--border)"}`,
+                }}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-semibold" style={{ color: "var(--ink)" }}>
+                      {note.author.firstName} {note.author.lastName}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={note.visibility === "TEAM_ONLY"
+                        ? { background: "rgba(212,160,71,0.15)", color: "var(--gold-deep)" }
+                        : { background: "var(--green-soft)", color: "var(--green-deep)" }}>
+                      {note.visibility === "TEAM_ONLY" ? "Équipe" : "Visible"}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.content}</p>
-                </CardContent>
-              </Card>
+                  <span className="text-[11px]" style={{ color: "var(--ink-mute)" }}>
+                    {formatDate(note.createdAt)}
+                  </span>
+                </div>
+                <p className="text-[13px] whitespace-pre-wrap" style={{ color: "var(--ink-soft)" }}>{note.content}</p>
+              </div>
             ))}
-
             {notes.length === 0 && (
-              <p className="text-center text-sm text-gray-400 py-6">
+              <p className="text-center text-[13px] py-6" style={{ color: "var(--ink-mute)" }}>
                 Aucune note pour ce client
               </p>
             )}
@@ -476,152 +432,146 @@ export function ClientDetailView({
         </div>
       )}
 
-      {/* Questions */}
+      {/* Questions tab */}
       {activeTab === "questions" && (
         <div className="space-y-3">
           {questions.map((question) => (
-            <Card key={question.id}>
-              <CardContent className="pt-4">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
-                    <Badge variant="outline" className="text-[10px] mb-1">
-                      {question.category}
-                    </Badge>
-                    <p className="text-sm font-medium text-gray-900">{question.content}</p>
-                  </div>
-                  <Badge
-                    variant={
-                      question.status === "ANSWERED"
-                        ? "default"
-                        : question.status === "IN_PROGRESS"
-                        ? "secondary"
-                        : "pending"
-                    }
-                    className="text-[10px] flex-shrink-0"
-                  >
-                    {question.status === "ANSWERED"
-                      ? "Répondu"
-                      : question.status === "IN_PROGRESS"
-                      ? "En cours"
-                      : "En attente"}
-                  </Badge>
+            <div key={question.id} className="rounded-[16px] p-4" style={{ background: "#fff", border: "1px solid var(--border)" }}>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full mb-1.5 inline-block"
+                    style={{ background: "var(--border-soft)", color: "var(--ink-mute)" }}>
+                    {question.category}
+                  </span>
+                  <p className="text-[13px] font-medium" style={{ color: "var(--ink)" }}>{question.content}</p>
                 </div>
+                <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={question.status === "ANSWERED"
+                    ? { background: "var(--green-soft)", color: "var(--green-deep)" }
+                    : question.status === "IN_PROGRESS"
+                    ? { background: "var(--border-soft)", color: "var(--ink-soft)" }
+                    : { background: "rgba(212,160,71,0.15)", color: "var(--gold-deep)" }}>
+                  {question.status === "ANSWERED" ? "Répondu" : question.status === "IN_PROGRESS" ? "En cours" : "En attente"}
+                </span>
+              </div>
 
-                {question.replies.length > 0 && (
-                  <div className="mt-3 space-y-2 pl-3 border-l-2 border-gray-100">
-                    {question.replies.map((reply) => (
-                      <div key={reply.id}>
-                        <span className="text-[11px] font-semibold text-gray-600">
-                          {reply.author.firstName} ({reply.author.role === "COACH" ? "Coach" : "Client"})
-                        </span>
-                        <p className="text-xs text-gray-700 mt-0.5">{reply.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              {question.replies.length > 0 && (
+                <div className="mt-3 space-y-2 pl-3" style={{ borderLeft: "2px solid var(--border-soft)" }}>
+                  {question.replies.map((reply) => (
+                    <div key={reply.id}>
+                      <span className="text-[11px] font-semibold" style={{ color: "var(--ink-soft)" }}>
+                        {reply.author.firstName} ({reply.author.role === "COACH" ? "Coach" : "Client"})
+                      </span>
+                      <p className="text-[12px] mt-0.5" style={{ color: "var(--ink-mute)" }}>{reply.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                {question.status !== "ANSWERED" && (
-                  <div className="mt-3 flex gap-2">
-                    <Textarea
-                      placeholder="Votre réponse..."
-                      value={replyContent[question.id] ?? ""}
-                      onChange={(e) =>
-                        setReplyContent((prev) => ({
-                          ...prev,
-                          [question.id]: e.target.value,
-                        }))
-                      }
-                      className="min-h-[60px] text-xs"
-                    />
-                    <Button
-                      size="icon"
-                      className="flex-shrink-0 self-end"
-                      onClick={() => sendReply(question.id)}
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              {question.status !== "ANSWERED" && (
+                <div className="mt-3 flex gap-2">
+                  <textarea
+                    placeholder="Votre réponse..."
+                    value={replyContent[question.id] ?? ""}
+                    onChange={(e) => setReplyContent((prev) => ({ ...prev, [question.id]: e.target.value }))}
+                    rows={2}
+                    className="flex-1 px-3 py-2 rounded-[10px] text-[12px] resize-none"
+                    style={inputStyle}
+                  />
+                  <button
+                    onClick={() => sendReply(question.id)}
+                    className="shrink-0 self-end p-2.5 rounded-[10px] text-white"
+                    style={{ background: "linear-gradient(135deg, var(--coral-start), var(--coral-end))" }}>
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
-
           {questions.length === 0 && (
-            <p className="text-center text-sm text-gray-400 py-6">
+            <p className="text-center text-[13px] py-6" style={{ color: "var(--ink-mute)" }}>
               Aucune question de ce client
             </p>
           )}
         </div>
       )}
 
-      {/* Tab Séances */}
+      {/* Séances tab */}
       {activeTab === "seances" && (
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <p className="text-sm font-semibold text-gray-700">{sessions.length} séance{sessions.length !== 1 ? "s" : ""}</p>
+            <p className="text-[13px] font-semibold" style={{ color: "var(--ink-soft)" }}>
+              {sessions.length} séance{sessions.length !== 1 ? "s" : ""}
+            </p>
             <button
-              onClick={() => setShowNewSessionForm(v => !v)}
-              className="text-xs font-bold px-3 py-1.5 rounded-lg text-white"
-              style={{ background: "linear-gradient(135deg,#FF8A6B,#E8527D)" }}
-            >
+              onClick={() => setShowNewSessionForm((v) => !v)}
+              className="text-[12.5px] font-bold px-3 py-1.5 rounded-[10px] text-white"
+              style={{ background: "linear-gradient(135deg, var(--coral-start), var(--coral-end))" }}>
               + Nouvelle séance
             </button>
           </div>
 
           {showNewSessionForm && (
-            <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
-              <p className="text-sm font-semibold text-gray-800">Planifier une séance</p>
+            <div className="rounded-[16px] p-4 space-y-3" style={{ background: "#fff", border: "1px solid var(--border)" }}>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>Planifier une séance</p>
               <input
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
                 placeholder="Titre de la séance (ex: Séance 7)"
                 value={newSessionTitle}
-                onChange={e => setNewSessionTitle(e.target.value)}
+                onChange={(e) => setNewSessionTitle(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-[10px] text-[13px]"
+                style={inputStyle}
               />
               <input
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
                 type="datetime-local"
                 value={newSessionDate}
-                onChange={e => setNewSessionDate(e.target.value)}
+                onChange={(e) => setNewSessionDate(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-[10px] text-[13px]"
+                style={inputStyle}
               />
               <div className="flex gap-2">
                 <button
                   onClick={createSession}
                   disabled={creatingSession || !newSessionTitle.trim() || !newSessionDate}
-                  className="flex-1 py-2 text-sm font-bold text-white rounded-xl disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg,#FF8A6B,#E8527D)" }}
-                >
+                  className="flex-1 py-2.5 text-[13px] font-bold text-white rounded-[10px] transition-opacity disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, var(--coral-start), var(--coral-end))" }}>
                   {creatingSession ? "Création..." : "Créer"}
                 </button>
                 <button
                   onClick={() => setShowNewSessionForm(false)}
-                  className="px-4 py-2 text-sm text-gray-600 rounded-xl border border-gray-200"
-                >
+                  className="px-4 py-2.5 text-[13px] rounded-[10px]"
+                  style={{ border: "1px solid var(--border)", color: "var(--ink-soft)" }}>
                   Annuler
                 </button>
               </div>
             </div>
           )}
 
-          {sessions.map(s => (
-            <div key={s.id} className="bg-white border border-gray-100 rounded-2xl p-4">
+          {sessions.map((s) => (
+            <div key={s.id} className="rounded-[16px] p-4" style={{ background: "#fff", border: "1px solid var(--border)" }}>
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">{s.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {new Date(s.scheduledAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  <p className="text-[13.5px] font-semibold" style={{ color: "var(--ink)" }}>{s.title}</p>
+                  <p className="text-[11.5px] mt-0.5" style={{ color: "var(--ink-mute)" }}>
+                    {new Date(s.scheduledAt).toLocaleDateString("fr-FR", {
+                      day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    })}
                   </p>
                 </div>
                 <button
                   onClick={() => setSessionFormOpen(s.id)}
-                  className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-                >
+                  className="text-[12px] font-bold px-3 py-1.5 rounded-[8px] transition-colors"
+                  style={{ border: "1px solid var(--border)", color: "var(--ink-soft)" }}>
                   {(s.summary || s.decisions || s.firefliesUrl) ? "Modifier" : "Remplir CR"}
                 </button>
               </div>
               {s.actions.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {s.actions.map(a => (
-                    <span key={a.id} className={cn("text-xs px-2 py-0.5 rounded-full font-medium", a.completedByClient ? "bg-green-100 text-green-700 line-through" : "bg-amber-50 text-amber-700")}>
+                  {s.actions.map((a) => (
+                    <span key={a.id}
+                      className="text-[11.5px] px-2 py-0.5 rounded-full font-medium"
+                      style={a.completedByClient
+                        ? { background: "var(--green-soft)", color: "var(--green-deep)", textDecoration: "line-through" }
+                        : { background: "rgba(212,160,71,0.12)", color: "var(--gold-deep)" }}>
                       {a.content.slice(0, 40)}{a.content.length > 40 ? "…" : ""}
                     </span>
                   ))}
@@ -631,20 +581,22 @@ export function ClientDetailView({
           ))}
 
           {sessions.length === 0 && !showNewSessionForm && (
-            <p className="text-center text-sm text-gray-400 py-6">Aucune séance planifiée</p>
+            <p className="text-center text-[13px] py-6" style={{ color: "var(--ink-mute)" }}>
+              Aucune séance planifiée
+            </p>
           )}
         </div>
       )}
 
       {sessionFormOpen && (() => {
-        const s = sessions.find(x => x.id === sessionFormOpen);
+        const s = sessions.find((x) => x.id === sessionFormOpen);
         if (!s) return null;
         return (
           <SessionForm
             session={{ ...s, client: { firstName: client.firstName, lastName: client.lastName } }}
             onClose={() => setSessionFormOpen(null)}
             onUpdated={(updated) => {
-              setSessions(prev => prev.map(x => x.id === s.id ? { ...x, ...updated } : x));
+              setSessions((prev) => prev.map((x) => x.id === s.id ? { ...x, ...updated } : x));
               setSessionFormOpen(null);
             }}
           />
